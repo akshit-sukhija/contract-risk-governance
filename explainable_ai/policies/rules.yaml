@@ -1,0 +1,35 @@
+rules:
+  - id: non_compete
+    keywords:
+      - "non-compete"
+      - "restrict competition"
+      - "exclusive services"
+    weight: 30
+
+  - id: indemnification
+    keywords:
+      - "indemnify"
+      - "indemnification"
+      - "hold harmless"
+      - "liability transfer"
+    weight: 30
+
+  - id: payment_delay
+    keywords:
+      - "net 60"
+      - "net 90"
+      - "delayed payment"
+    weight: 15
+
+  - id: perpetual_license
+    keywords:
+      - "perpetual license"
+      - "irrevocable license"
+      - "worldwide license"
+    weight: 20
+
+  - id: unlimited_liability
+    keywords:
+      - "unlimited liability"
+      - "no cap on damages"
+    weight: 40

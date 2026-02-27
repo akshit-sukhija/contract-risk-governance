@@ -1,0 +1,10 @@
+streamlit
+fastapi
+uvicorn
+pyyaml
+pydantic
+python-multipart
+requests
+PyPDF2
+matplotlib
+reportlab
