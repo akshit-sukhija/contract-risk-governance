@@ -1,4 +1,3 @@
----
 # Nexus Governance OS 🛡️
 
 > **🚀 Technical Highlight**: This project is natively optimized for **AMD Ryzen™ AI**. All LLM explanation tasks are offloaded to the dedicated **NPU** via **DirectML**, ensuring **90% lower latency** and **100% data privacy** by keeping all sensitive legal data local.
