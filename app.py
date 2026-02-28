@@ -26,6 +26,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from reportlab.graphics.barcode import qr
+from reportlab.graphics.shapes import Drawing
 
 from explainable_ai.core.engine.rule_engine import RuleEngine
 from explainable_ai.core.governance.governance import apply_governance_layer
@@ -71,6 +72,24 @@ def highlight_text(text, failed_rules):
                 )
     return highlighted
 
+def add_watermark_footer(canvas_obj, doc, document_id):
+    canvas_obj.saveState()
+
+    # Watermark
+    canvas_obj.setFont("Helvetica", 60)
+    canvas_obj.setFillColorRGB(0.92, 0.92, 0.92)
+    canvas_obj.translate(300, 400)
+    canvas_obj.rotate(45)
+    canvas_obj.drawCentredString(0, 0, "CONFIDENTIAL")
+    canvas_obj.restoreState()
+
+    # Footer
+    canvas_obj.setFont("Helvetica", 8)
+    canvas_obj.drawString(40, 20, f"Nexus Governance OS | Document ID: {document_id}")
+    canvas_obj.drawRightString(570, 20, f"Page {doc.page}")
+
+    canvas_obj.restoreState()
+
 # ------------------------------------------------
 # PDF GENERATION
 # ------------------------------------------------
@@ -94,7 +113,7 @@ def generate_pdf_report(rule_result, governance_action, confidence_vector, docum
         "version": "prototype-v1"
     }, separators=(",", ":"))
 
-    # HEADER
+    # Header
     elements.append(Paragraph("Nexus Governance OS - Risk Audit Report", styles["Heading1"]))
     elements.append(Spacer(1, 12))
     elements.append(Paragraph(f"Document ID: {document_id}", styles["Normal"]))
@@ -102,7 +121,7 @@ def generate_pdf_report(rule_result, governance_action, confidence_vector, docum
     elements.append(Paragraph(f"SHA-256 Hash: {document_hash}", styles["Normal"]))
     elements.append(Spacer(1, 16))
 
-    # EXECUTIVE SUMMARY
+    # Executive Summary
     elements.append(Paragraph("Executive Summary", styles["Heading2"]))
     elements.append(Spacer(1, 8))
     elements.append(Paragraph(f"Risk Level: {rule_result['deterministic_label']}", styles["Normal"]))
@@ -110,17 +129,13 @@ def generate_pdf_report(rule_result, governance_action, confidence_vector, docum
     elements.append(Paragraph(f"Risk Score: {rule_result['eligibility_score']}", styles["Normal"]))
     elements.append(Spacer(1, 16))
 
-    # GOVERNANCE AUDIT TRAIL
+    # Governance Audit
     elements.append(Paragraph("Governance Audit Trail", styles["Heading2"]))
     elements.append(Spacer(1, 8))
     elements.append(Paragraph(f"Confidence Vector: {confidence_vector}", styles["Normal"]))
-    elements.append(Paragraph("CRAG Blocked: False", styles["Normal"]))
     elements.append(Spacer(1, 16))
 
-    # CLAUSE TABLE
-    elements.append(Paragraph("Clause Severity Breakdown", styles["Heading2"]))
-    elements.append(Spacer(1, 8))
-
+    # Clause Table
     table_data = [["Clause ID", "Triggered", "Weight"]]
     for rule in rule_engine.rules:
         triggered = "Yes" if rule.id in rule_result["failed_rules"] else "No"
@@ -137,7 +152,7 @@ def generate_pdf_report(rule_result, governance_action, confidence_vector, docum
     elements.append(table)
     elements.append(Spacer(1, 20))
 
-    # HEATMAP
+    # Heatmap
     heat_values = [
         rule.weight if rule.id in rule_result["failed_rules"] else 0
         for rule in rule_engine.rules
@@ -145,15 +160,9 @@ def generate_pdf_report(rule_result, governance_action, confidence_vector, docum
 
     if any(heat_values):
         fig, ax = plt.subplots(figsize=(6, 1))
-        sns.heatmap(
-            np.array([heat_values]),
-            annot=True,
-            cmap="Reds",
-            cbar=False,
-            ax=ax
-        )
+        sns.heatmap(np.array([heat_values]), annot=True, cmap="Reds", cbar=False, ax=ax)
         ax.set_xticklabels([r.id for r in rule_engine.rules], rotation=45)
-        ax.set_yticklabels(["Risk Intensity"])
+        ax.set_yticklabels(["Risk"])
         plt.tight_layout()
 
         img_buffer = BytesIO()
@@ -161,44 +170,52 @@ def generate_pdf_report(rule_result, governance_action, confidence_vector, docum
         plt.close(fig)
         img_buffer.seek(0)
 
-        elements.append(Paragraph("Risk Heatmap Overview", styles["Heading2"]))
-        elements.append(Spacer(1, 8))
         elements.append(Image(img_buffer, width=6 * inch, height=2 * inch))
         elements.append(Spacer(1, 20))
 
-    # DIGITAL SIGNATURE
+    # Digital Signature
     elements.append(Paragraph("Digital Signature Validation", styles["Heading2"]))
     elements.append(Spacer(1, 20))
-    elements.append(Paragraph(
-        "This document has been digitally signed under internal governance controls.",
-        styles["Normal"]
-    ))
+    elements.append(Paragraph("Digitally signed under internal governance controls.", styles["Normal"]))
     elements.append(Spacer(1, 40))
     elements.append(Paragraph("______________________________", styles["Normal"]))
     elements.append(Paragraph("Authorized Compliance Officer", styles["Normal"]))
 
-    # HIGHLIGHTED EXPORT
+    # Highlighted Clauses
     elements.append(PageBreak())
     elements.append(Paragraph("Highlighted Clause Export", styles["Heading1"]))
     elements.append(Spacer(1, 12))
-    highlighted_version = highlight_text(document_text, rule_result["failed_rules"])
-    elements.append(Paragraph(highlighted_version[:4000], styles["Normal"]))
 
-    # VERIFICATION PAGE
+    highlighted = highlight_text(document_text, rule_result["failed_rules"])
+    for i in range(0, len(highlighted), 2000):
+        elements.append(Paragraph(highlighted[i:i+2000], styles["Normal"]))
+        elements.append(Spacer(1, 6))
+
+    # Verification Page
     elements.append(PageBreak())
     elements.append(Paragraph("Tamper Detection & Verification", styles["Heading1"]))
-    elements.append(Spacer(1, 20))
-    elements.append(Paragraph("To verify authenticity:", styles["Normal"]))
-    elements.append(Paragraph("1. Recalculate SHA-256 of original contract.", styles["Normal"]))
-    elements.append(Paragraph(f"2. Confirm match with: {document_hash}", styles["Normal"]))
-    elements.append(Paragraph(f"3. Confirm Document ID: {document_id}", styles["Normal"]))
-    elements.append(Spacer(1, 20))
-
-    elements.append(Paragraph("Verification QR Code", styles["Heading2"]))
     elements.append(Spacer(1, 12))
-    elements.append(qr.QrCodeWidget(verification_payload))
+    elements.append(Paragraph(f"Document Hash: {document_hash}", styles["Normal"]))
+    elements.append(Paragraph(f"Document ID: {document_id}", styles["Normal"]))
+    elements.append(Spacer(1, 20))
 
-    doc.build(elements)
+    qr_code = qr.QrCodeWidget(verification_payload)
+    bounds = qr_code.getBounds()
+    size = 2 * inch
+    scale = size / (bounds[2] - bounds[0])
+    drawing = Drawing(size, size, transform=[scale, 0, 0, scale, 0, 0])
+    drawing.add(qr_code)
+    elements.append(drawing)
+
+    try:
+        doc.build(
+            elements,
+            onFirstPage=lambda c, d: add_watermark_footer(c, d, document_id),
+            onLaterPages=lambda c, d: add_watermark_footer(c, d, document_id)
+        )
+    except Exception:
+        return None
+
     buffer.seek(0)
     return buffer
 
@@ -223,9 +240,7 @@ if view == "Dashboard":
     uploaded_pdf = st.file_uploader("Upload Contract PDF", type=["pdf"])
     document_text = st.text_area("Or Paste Contract Text", height=200)
 
-    analyze_clicked = st.button("Analyze Contract", use_container_width=True)
-
-    if analyze_clicked:
+    if st.button("Analyze Contract", use_container_width=True):
 
         if uploaded_pdf:
             document_text = extract_pdf_text(uploaded_pdf)
@@ -250,21 +265,6 @@ if view == "Dashboard":
             crag_blocked=False,
         )
 
-        st.session_state["analysis"] = {
-            "rule_result": rule_result,
-            "governance_action": governance_action,
-            "confidence_vector": confidence_vector,
-            "document_text": document_text
-        }
-
-    if "analysis" in st.session_state:
-
-        data = st.session_state["analysis"]
-        rule_result = data["rule_result"]
-        governance_action = data["governance_action"]
-        confidence_vector = data["confidence_vector"]
-        document_text = data["document_text"]
-
         st.subheader("Executive Summary")
         st.write("Risk Level:", rule_result["deterministic_label"])
         st.write("Governance Action:", governance_action)
@@ -277,13 +277,16 @@ if view == "Dashboard":
             document_text
         )
 
-        st.download_button(
-            label="Download Risk Report (PDF)",
-            data=pdf_buffer,
-            file_name="Nexus_Risk_Audit_Report.pdf",
-            mime="application/pdf",
-            use_container_width=True
-        )
+        if pdf_buffer:
+            st.download_button(
+                "Download Risk Report (PDF)",
+                pdf_buffer,
+                "Nexus_Risk_Audit_Report.pdf",
+                "application/pdf",
+                use_container_width=True
+            )
+        else:
+            st.error("PDF generation failed.")
 
 elif view == "Assessments":
     st.info("No assessments yet.")
