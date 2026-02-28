@@ -6,6 +6,8 @@
 
 ### *Deterministic Decision Intelligence for 2026's Regulatory Landscape — Optimized for AMD Ryzen™ AI*
 
+---
+
 ## 📌 Project Overview
 
 **Nexus Governance OS** is an enterprise-grade **Explainable Decision Intelligence System** designed for high-stakes legal and government audits. Developed for the **AMD Slingshot Hackathon 2026**, the platform introduces a **"Decision-First, Narrative-Second"** architecture. By separating hard-coded deterministic compliance logic from AI-generated narrative explanations, we eliminate hallucinations and ensure 100% predictable audit trails.
@@ -25,14 +27,12 @@
 ## 🛠️ Technology Stack & Requirements
 
 ### **Core Stack**
-
 * **Hardware Acceleration**: **AMD Ryzen™ AI NPU** via **ONNX Runtime + DirectML**.
 * **Backend Orchestration**: **FastAPI** (High-concurrency asynchronous processing).
 * **UI/Frontend**: **Streamlit** (Transparency Dashboard & Risk Visualizations).
 * **AI/ML Layer**: **FAISS** (Local Vector Store) and custom **CRAG Validator**.
 
 ### **🖥️ Hardware & Software Prerequisites**
-
 * **Processor**: AMD Ryzen™ 7000/8000 series with dedicated **NPU**.
 * **OS**: Windows 11 (Version 22H2 or higher).
 * **Drivers**: Latest AMD Software with **DirectML** compatible drivers.
@@ -56,9 +56,7 @@
 
 <img width="958" height="675" alt="image" src="https://github.com/user-attachments/assets/b2d0c89c-445a-4cf5-982d-0768ae26b0a6" />
 
-
 ### **Execution Flow: The Nexus Audit Pipeline**
-
 * **Phase 1**: Ingestion & **SHA-256 Hash Verification**.
 * **Phase 2**: **Deterministic Rule Analysis** (100% predictable).
 * **Phase 3**: **Contextual Grounding (XAI)** via Local FAISS Store and CRAG.
@@ -66,8 +64,9 @@
 * **Phase 5**: **Secure Reporting** with digital signatures and QR-code verification.
 
 ### **Folder Structure**
-
-```markdown
+```text
+├── explainable_ai          
+├── app.py        # Streamlit Transparency Dashboard # FastAPI Backend & Orchestration
 
 
 ```
@@ -102,8 +101,6 @@ The backend provides high-performance asynchronous endpoints.
 * **`POST /evaluate`**: Uploads document for **Deterministic Audit**.
 * **`GET /report/{uuid}`**: Downloads the verifiable PDF Audit Report.
 
-### **Sample Interactions**
-
 | Endpoint | Method | Description | Sample Response |
 | --- | --- | --- | --- |
 | `GET /health` | `GET` | Hardware status check. | `{"status": "online", "hardware": "AMD NPU Optimized"}` |
@@ -117,13 +114,6 @@ The backend provides high-performance asynchronous endpoints.
 
 * **Zero-Cloud Architecture**: By running inference strictly on the **AMD NPU**, sensitive legal data never leaves the host machine.
 * **Immutable Integrity**: Every audit is linked to a **SHA-256 document fingerprint**, ensuring the audit trail remains verifiable and tamper-proof.
-
----
-
-## 🔮 Roadmap & Scalability
-
-* **Multi-Language Support**: Expanding deterministic audit capabilities to regional language legal contracts.
-* **GovScheme Setu**: Adapting the Nexus engine for government scholarship eligibility automation.
 
 ---
 
