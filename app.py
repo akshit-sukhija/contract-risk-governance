@@ -453,8 +453,6 @@ elif view == "Ingestion":
     else:
         rule_result = st.session_state["analysis"]["rule_result"]
 
-        table_rows = []
-
         for rule in rule_engine.rules:
             triggered = rule.id in rule_result["failed_rules"]
 
@@ -463,16 +461,13 @@ elif view == "Ingestion":
             else:
                 status = "<span class='status-chip chip-green'>Compliant</span>"
 
-            table_rows.append([rule.id, status, rule.weight])
-
-        for row in table_rows:
             st.markdown(f"""
             <div style="background:#0f172a;
                         padding:14px;
                         border-radius:10px;
                         margin-bottom:8px;
                         border:1px solid #1e293b;">
-                <strong>{row[0]}</strong> &nbsp;&nbsp; {row[1]} &nbsp;&nbsp; Weight: {row[2]}
+                <strong>{rule.id}</strong> &nbsp;&nbsp; {status} &nbsp;&nbsp; Weight: {rule.weight}
             </div>
             """, unsafe_allow_html=True)
 
@@ -514,10 +509,6 @@ curl -X POST https://api.nexusgovernance.ai/evaluate \\
 # ------------------------------------------------
 # PRICING
 # ------------------------------------------------
-
-elif view == "Pricing":
-    st.info("Enterprise licensing available upon request.")
-""")
 
 elif view == "Pricing":
     st.info("Enterprise licensing available upon request.")
