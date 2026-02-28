@@ -94,7 +94,7 @@ The Nexus Architect engine is vertically agnostic. We plan to scale this logic i
 * **Tanish Sabharwal** — *AI & Optimization Lead*
     * Optimized LLM inference for AMD Ryzen™ AI NPUs via ONNX/DirectML and managed FAISS vector retrieval.
 
-* **Nexus Architects** - *AMD Slingshot Hackathon 2026 Submission*
+ **Nexus Architects** - *AMD Slingshot Hackathon 2026 Submission*
 
 ---
 
