@@ -9,4 +9,5 @@ PyPDF2
 matplotlib
 reportlab
 plotly
-
+numpy
+seaborn
