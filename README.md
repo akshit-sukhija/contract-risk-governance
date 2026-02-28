@@ -1,5 +1,4 @@
 ---
-
 # Nexus Governance OS 🛡️
 
 > **🚀 Technical Highlight**: This project is natively optimized for **AMD Ryzen™ AI**. All LLM explanation tasks are offloaded to the dedicated **NPU** via **DirectML**, ensuring **90% lower latency** and **100% data privacy** by keeping all sensitive legal data local.
@@ -65,12 +64,19 @@
 
 ### **Folder Structure**
 ```text
-├── explainable_ai          
-├── app.py        # Streamlit Transparency Dashboard # FastAPI Backend & Orchestration
-
+├── core/                   # Deterministic logic gates and rule-loader system
+│   ├── rules_loader.py     # Logic for versioned rule ingestion
+│   └── rule_engine.py      # Core deterministic audit logic
+├── ai_engine/              # AMD NPU optimization and LLM orchestration
+│   ├── inference.py        # ONNX Runtime and DirectML execution
+│   └── crag_validator.py   # Corrective RAG (CRAG) logic for citations
+├── static/                 # UI assets, architecture diagrams, and logos
+├── reports/                # Local storage for generated PDF audit logs
+├── app.py                  # Streamlit Transparency Dashboard (UI)
+├── main.py                 # FastAPI backend and async orchestration
+└── requirements.txt        # Enterprise-grade dependency list
 
 ```
-
 ---
 
 ## 📸 Proof of Work (UI)
