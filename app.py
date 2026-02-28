@@ -363,6 +363,7 @@ if view == "Dashboard":
         risk = rule_result["deterministic_label"]
         score = rule_result["eligibility_score"]
 
+        # Risk color mapping
         risk_colors = {
             "LOW_RISK": "#16a34a",
             "MEDIUM_RISK": "#f59e0b",
@@ -371,6 +372,7 @@ if view == "Dashboard":
 
         accent = risk_colors.get(risk, "#2563eb")
 
+        # Executive Risk Display
         st.markdown(f"""
         <div style="
             background:#0f172a;
@@ -400,6 +402,8 @@ if view == "Dashboard":
         </div>
         """, unsafe_allow_html=True)
 
+        # KPI Grid (pure Streamlit for stability)
+
         col1, col2, col3 = st.columns(3)
 
         confidence_score = round(
@@ -407,41 +411,11 @@ if view == "Dashboard":
             2
         )
 
-        metrics = [
-            ("Failed Rules", len(rule_result["failed_rules"])),
-            ("Passed Rules", len(rule_result["passed_rules"])),
-            ("Confidence Index", confidence_score)
-        ]
+        col1.metric("Failed Rules", len(rule_result["failed_rules"]))
+        col2.metric("Passed Rules", len(rule_result["passed_rules"]))
+        col3.metric("Confidence Index", confidence_score)
 
-        for col, (label, value) in zip([col1, col2, col3], metrics):
-            with col:
-                st.markdown(f"""
-                <div style="
-                    background:#0b1220;
-                    padding:24px;
-                    border-radius:16px;
-                    border:1px solid #1e293b;
-                    text-align:center;
-                ">
-                    <div style="
-                        font-size:12px;
-                        letter-spacing:0.08em;
-                        color:#94a3b8;
-                        text-transform:uppercase;
-                    ">
-                        {label}
-                    </div>
-
-                    <div style="
-                        font-size:36px;
-                        font-weight:600;
-                        margin-top:10px;
-                        color:white;
-                    ">
-                        {value}
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+        # Gauge
 
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
@@ -519,11 +493,11 @@ elif view == "Audit Log":
 
 elif view == "Developer API":
 
-    st.code("""
-curl -X POST https://api.nexusgovernance.ai/evaluate \\
--H "Content-Type: application/json" \\
--d '{"document_text": "Contract text here"}'
-""")
+    st.code(
+        'curl -X POST https://api.nexusgovernance.ai/evaluate '
+        '-H "Content-Type: application/json" '
+        '-d \'{"document_text": "Contract text here"}\''
+    )
 
 # ------------------------------------------------
 # PRICING
