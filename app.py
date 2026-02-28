@@ -344,7 +344,7 @@ if view == "Dashboard":
 
         st.divider()
 
-        st.subheader("Risk Audit Report")
+        st.markdown("### Governance Output")
 
         pdf_buffer = generate_pdf_report(
             rule_result=rule_result,
