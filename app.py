@@ -1,337 +1,331 @@
 import streamlit as st
 import re
+import hashlib
+import uuid
+import json
 from pathlib import Path
-import PyPDF2
-import plotly.graph_objects as go
-import plotly.express as px
+from typing import Optional
+from io import BytesIO
 from datetime import datetime
-import time
+
+import PyPDF2
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle,
+    Image,
+    PageBreak
+)
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+from reportlab.graphics.barcode import qr
+from reportlab.pdfgen import canvas
 
 from explainable_ai.core.engine.rule_engine import RuleEngine
 from explainable_ai.core.governance.governance import apply_governance_layer
 from explainable_ai.core.scoring.scoring import calculate_confidence_vector
 
+
 # -------------------------------------------------
 # CONFIG
 # -------------------------------------------------
-st.set_page_config(
-    page_title="Nexus Governance OS",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+
+st.set_page_config(page_title="Nexus Governance OS", layout="wide")
 
 BASE_DIR = Path(__file__).resolve().parent
 POLICY_PATH = BASE_DIR / "explainable_ai" / "policies" / "rules.yaml"
+LOGO_PATH = BASE_DIR / "logo.png"
+
 rule_engine = RuleEngine(POLICY_PATH)
 
-# -------------------------------------------------
-# ENTERPRISE DESIGN SYSTEM
-# -------------------------------------------------
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+st.title("Nexus Governance OS")
+st.caption("Deterministic AI for Contract Risk Governance")
 
-:root {
-    --primary: #0D47A1;
-    --primary-light: #1565C0;
-    --success: #4CAF50;
-    --warning: #FF9800;
-    --error: #F44336;
-    --bg-dark: #0F1419;
-    --bg-card: #1A202C;
-    --border: #2D3748;
-    --text-primary: #FFFFFF;
-    --text-secondary: #A0AEC0;
-}
-
-html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif;
-}
-
-body { background: var(--bg-dark); color: var(--text-primary); }
-
-.block-container { padding: 3rem 4rem; max-width: 1200px; }
-
-.hero {
-    padding-bottom: 2rem;
-    margin-bottom: 3rem;
-    border-bottom: 2px solid var(--primary);
-}
-.hero h1 { font-size: 2.6rem; font-weight: 700; margin-bottom: 0.5rem; }
-.hero p { color: var(--text-secondary); }
-
-.module {
-    font-size: 0.8rem;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    margin-bottom: 1rem;
-    color: var(--text-secondary);
-    font-weight: 600;
-}
-
-.card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    padding: 2rem;
-    border-radius: 12px;
-    margin-bottom: 2rem;
-    transition: 0.2s ease;
-}
-
-.card:hover { border-color: var(--primary); }
-
-.stButton > button {
-    background: var(--primary);
-    color: white;
-    font-weight: 600;
-    padding: 12px 24px;
-    border-radius: 6px;
-    border: none;
-    transition: 0.2s ease;
-}
-
-.stButton > button:hover {
-    background: var(--primary-light);
-    transform: translateY(-1px);
-}
-
-.exec-banner {
-    padding: 1.8rem;
-    border-radius: 10px;
-    margin-top: 2rem;
-}
-
-.kpi-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    padding: 1.5rem;
-    border-radius: 8px;
-    text-align: center;
-}
-
-.kpi-value {
-    font-size: 2rem;
-    font-weight: 700;
-}
-
-.empty-state {
-    padding: 4rem;
-    text-align: center;
-    border: 2px dashed var(--border);
-    border-radius: 8px;
-    color: var(--text-secondary);
-}
-</style>
-""", unsafe_allow_html=True)
 
 # -------------------------------------------------
 # HELPERS
 # -------------------------------------------------
-def extract_pdf_text(uploaded_file):
-    reader = PyPDF2.PdfReader(uploaded_file)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text() or ""
-    return text
 
-def risk_color(level):
-    return {
-        "HIGH_RISK": "#F44336",
-        "MEDIUM_RISK": "#FF9800",
-        "LOW_RISK": "#4CAF50"
-    }.get(level, "#0D47A1")
+def extract_pdf_text(uploaded_file) -> str:
+    try:
+        reader = PyPDF2.PdfReader(uploaded_file)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() or ""
+        return text
+    except Exception:
+        return ""
 
-def animate_metric(label, value):
-    placeholder = st.empty()
-    step = max(1, value // 20 or 1)
-    for i in range(0, value + 1, step):
-        placeholder.markdown(
-            f"<div class='kpi-card'><div>{label}</div><div class='kpi-value'>{i}</div></div>",
-            unsafe_allow_html=True
-        )
-        time.sleep(0.01)
-    placeholder.markdown(
-        f"<div class='kpi-card'><div>{label}</div><div class='kpi-value'>{value}</div></div>",
-        unsafe_allow_html=True
+
+def generate_document_hash(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def build_qr_payload(product, doc_id, doc_hash, timestamp):
+    payload = {
+        "product": product,
+        "doc_id": doc_id,
+        "hash": doc_hash,
+        "ts": timestamp,
+        "ver": "prototype-v1"
+    }
+    return json.dumps(payload, separators=(",", ":"))
+
+
+def add_watermark_and_footer(canvas_obj, doc, qr_payload):
+    canvas_obj.saveState()
+
+    # Watermark
+    canvas_obj.setFont("Helvetica", 60)
+    canvas_obj.setFillColorRGB(0.9, 0.9, 0.9)
+    canvas_obj.translate(300, 400)
+    canvas_obj.rotate(45)
+    canvas_obj.drawCentredString(0, 0, "CONFIDENTIAL")
+    canvas_obj.restoreState()
+
+    # Footer QR
+    qr_code = qr.QrCodeWidget(qr_payload)
+    bounds = qr_code.getBounds()
+    size = 70
+    width = bounds[2] - bounds[0]
+    height = bounds[3] - bounds[1]
+    d = size / width
+    qr_code.barWidth = d
+    qr_code.barHeight = d
+
+    renderPDF.draw(qr_code, canvas_obj, 450, 20)
+
+    canvas_obj.setFont("Helvetica", 8)
+    canvas_obj.drawString(40, 30, "Nexus Governance OS - Confidential")
+    canvas_obj.drawRightString(570, 30, f"Page {doc.page}")
+
+    canvas_obj.restoreState()
+
+
+# -------------------------------------------------
+# PDF GENERATION
+# -------------------------------------------------
+
+def generate_pdf_report(rule_result, governance_decision, document_text):
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    document_id = str(uuid.uuid4())
+    doc_hash = generate_document_hash(document_text)
+    qr_payload = build_qr_payload(
+        "Nexus Governance OS",
+        document_id,
+        doc_hash,
+        timestamp
     )
 
-# -------------------------------------------------
-# SIDEBAR
-# -------------------------------------------------
-view = st.sidebar.radio(
-    "Platform Navigation",
-    ["Dashboard", "Assessments", "Developer API", "Pricing"]
-)
+    # Logo
+    if LOGO_PATH.exists():
+        elements.append(Image(str(LOGO_PATH), width=2 * inch, height=1 * inch))
+        elements.append(Spacer(1, 12))
+
+    # Header
+    elements.append(Paragraph("Risk Audit Report", styles["Heading1"]))
+    elements.append(Spacer(1, 8))
+    elements.append(Paragraph(f"Document ID: {document_id}", styles["Normal"]))
+    elements.append(Paragraph(f"Generated: {timestamp}", styles["Normal"]))
+    elements.append(Paragraph(f"SHA-256 Hash: {doc_hash}", styles["Normal"]))
+    elements.append(Spacer(1, 20))
+
+    # Executive Summary
+    elements.append(Paragraph("Executive Summary", styles["Heading2"]))
+    elements.append(Spacer(1, 8))
+
+    risk_color = (
+        colors.red if rule_result["deterministic_label"] == "HIGH_RISK"
+        else colors.orange if rule_result["deterministic_label"] == "MEDIUM_RISK"
+        else colors.green
+    )
+
+    risk_style = ParagraphStyle(
+        name="RiskStyle",
+        parent=styles["Normal"],
+        textColor=risk_color
+    )
+
+    elements.append(Paragraph(
+        f"Risk Level: {rule_result['deterministic_label']}",
+        risk_style
+    ))
+    elements.append(Paragraph(
+        f"Governance Decision: {governance_decision}",
+        styles["Normal"]
+    ))
+    elements.append(Paragraph(
+        f"Risk Score: {rule_result['eligibility_score']}",
+        styles["Normal"]
+    ))
+    elements.append(Spacer(1, 20))
+
+    # Clause Table
+    elements.append(Paragraph("Clause Severity Breakdown", styles["Heading2"]))
+    elements.append(Spacer(1, 8))
+
+    table_data = [["Clause ID", "Triggered", "Weight"]]
+
+    for rule in rule_engine.rules:
+        triggered = "Yes" if rule.id in rule_result["failed_rules"] else "No"
+        weight = rule.weight if triggered == "Yes" else "-"
+        table_data.append([rule.id, triggered, str(weight)])
+
+    table = Table(table_data, colWidths=[2.5 * inch, 1 * inch, 1 * inch])
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.black),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+    ]))
+
+    elements.append(table)
+    elements.append(Spacer(1, 20))
+
+    # Risk Heatmap
+    if rule_result["failed_rules"]:
+        heat_values = [
+            rule.weight if rule.id in rule_result["failed_rules"] else 0
+            for rule in rule_engine.rules
+        ]
+
+        fig, ax = plt.subplots(figsize=(6, 1))
+        sns.heatmap(
+            np.array([heat_values]),
+            annot=True,
+            cmap="Reds",
+            cbar=False,
+            ax=ax
+        )
+        ax.set_xticklabels([rule.id for rule in rule_engine.rules], rotation=45)
+        ax.set_yticklabels(["Risk"])
+        plt.tight_layout()
+
+        img_buffer = BytesIO()
+        fig.savefig(img_buffer, format="png")
+        plt.close(fig)
+        img_buffer.seek(0)
+
+        elements.append(Paragraph("Risk Heatmap Overview", styles["Heading2"]))
+        elements.append(Spacer(1, 8))
+        elements.append(Image(img_buffer, width=6 * inch, height=2 * inch))
+        elements.append(Spacer(1, 20))
+
+    # Digital Signature Simulation
+    elements.append(Paragraph("Digital Signature Validation", styles["Heading2"]))
+    elements.append(Spacer(1, 12))
+    elements.append(Paragraph(
+        "This document has been digitally signed using internal governance controls.",
+        styles["Normal"]
+    ))
+    elements.append(Spacer(1, 40))
+    elements.append(Paragraph("______________________________", styles["Normal"]))
+    elements.append(Paragraph("Authorized Compliance Officer", styles["Normal"]))
+
+    # Verification Page
+    elements.append(PageBreak())
+    elements.append(Paragraph("Tamper Detection & Verification", styles["Heading1"]))
+    elements.append(Spacer(1, 20))
+    elements.append(Paragraph(
+        "To verify authenticity:",
+        styles["Normal"]
+    ))
+    elements.append(Spacer(1, 8))
+    elements.append(Paragraph(
+        f"1. Recalculate SHA-256 of original contract.",
+        styles["Normal"]
+    ))
+    elements.append(Paragraph(
+        f"2. Confirm it matches: {doc_hash}",
+        styles["Normal"]
+    ))
+    elements.append(Paragraph(
+        f"3. Confirm Document ID: {document_id}",
+        styles["Normal"]
+    ))
+
+    doc.build(
+        elements,
+        onFirstPage=lambda c, d: add_watermark_and_footer(c, d, qr_payload),
+        onLaterPages=lambda c, d: add_watermark_and_footer(c, d, qr_payload),
+    )
+
+    buffer.seek(0)
+    return buffer
+
 
 # -------------------------------------------------
-# HERO
+# INPUT
 # -------------------------------------------------
-st.markdown("""
-<div class="hero">
-<h1>Nexus Governance OS</h1>
-<p>Deterministic AI for Contract Risk Governance • Built for the 2026 Compliance Era</p>
-</div>
-""", unsafe_allow_html=True)
 
-# -------------------------------------------------
-# DASHBOARD
-# -------------------------------------------------
-if view == "Dashboard":
+col1, col2 = st.columns(2)
 
-    st.markdown('<div class="module">Module 1 — Contract Ingestion</div>', unsafe_allow_html=True)
-
-    st.markdown('<div class="card">', unsafe_allow_html=True)
+with col1:
     uploaded_pdf = st.file_uploader("Upload Contract PDF", type=["pdf"])
+
+with col2:
     document_text = st.text_area("Or Paste Contract Text", height=200)
-    st.markdown('</div>', unsafe_allow_html=True)
 
-    if document_text.strip() or uploaded_pdf:
+analyze = st.button("Analyze Contract", use_container_width=True)
 
-        if uploaded_pdf:
-            document_text = extract_pdf_text(uploaded_pdf)
-
-        rule_result = rule_engine.evaluate(document_text)
-
-        confidence_vector = calculate_confidence_vector(
-            passed_rules=rule_result["passed_rules"],
-            failed_rules=rule_result["failed_rules"],
-            total_rules=len(rule_engine.rules),
-            retrieval_similarity=1.0,
-            data_completeness=1.0,
-        )
-
-        governance_action = apply_governance_layer(
-            deterministic_label=rule_result["deterministic_label"],
-            confidence_vector=confidence_vector,
-            crag_blocked=False,
-        )
-
-        st.markdown(f"""
-        <div class="exec-banner" style="border-left:6px solid {risk_color(rule_result['deterministic_label'])}; background:#1A202C;">
-            <h3>Executive Risk Summary</h3>
-            <p><strong>Risk Classification:</strong> {rule_result['deterministic_label']}</p>
-            <p><strong>Governance Action:</strong> {governance_action}</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            animate_metric("Risk Exposure Index", rule_result["eligibility_score"])
-        with col2:
-            animate_metric("Failed Rules", len(rule_result["failed_rules"]))
-        with col3:
-            animate_metric("Passed Rules", len(rule_result["passed_rules"]))
-
-        # Risk Gauge
-        fig_gauge = go.Figure(go.Pie(
-            values=[rule_result["eligibility_score"], 100 - rule_result["eligibility_score"]],
-            hole=0.7
-        ))
-        fig_gauge.update_layout(showlegend=False, paper_bgcolor="#0F1419",
-                                font=dict(color="white"), title="Risk Severity")
-        st.plotly_chart(fig_gauge, use_container_width=True)
-
-        # Pie
-        fig_pie = px.pie(
-            names=["Passed", "Failed"],
-            values=[len(rule_result["passed_rules"]), len(rule_result["failed_rules"])],
-            hole=0.5
-        )
-        fig_pie.update_layout(paper_bgcolor="#0F1419", font_color="white")
-        st.plotly_chart(fig_pie, use_container_width=True)
-
-        # Radar
-        fig_radar = go.Figure()
-        fig_radar.add_trace(go.Scatterpolar(
-            r=list(confidence_vector.values()),
-            theta=list(confidence_vector.keys()),
-            fill='toself'
-        ))
-        fig_radar.update_layout(
-            polar=dict(radialaxis=dict(range=[0, 1], visible=True)),
-            showlegend=False,
-            paper_bgcolor="#0F1419",
-            font=dict(color="white")
-        )
-        st.plotly_chart(fig_radar, use_container_width=True)
 
 # -------------------------------------------------
-# PRICING
+# ANALYSIS FLOW
 # -------------------------------------------------
-elif view == "Pricing":
 
-    st.subheader("Platform Plans")
+if analyze:
 
-    if "selected_plan" not in st.session_state:
-        st.session_state.selected_plan = "Pro"
+    if uploaded_pdf:
+        document_text = extract_pdf_text(uploaded_pdf)
 
-    col1, col2, col3 = st.columns(3)
+    if not document_text.strip():
+        st.error("Please provide contract text.")
+        st.stop()
 
-    def render_plan(col, plan, desc):
-        with col:
-            selected = st.session_state.selected_plan == plan
-            border = "2px solid #0D47A1" if selected else "1px solid #2D3748"
-            shadow = "0 6px 30px rgba(13,71,161,0.25)" if selected else "none"
+    rule_result = rule_engine.evaluate(document_text)
 
-            st.markdown(f"""
-            <div style="background:#1A202C;
-                        border:{border};
-                        box-shadow:{shadow};
-                        padding:2rem;
-                        border-radius:12px;
-                        margin-bottom:1rem;">
-                <h3>{plan}</h3>
-                {desc}
-            </div>
-            """, unsafe_allow_html=True)
+    confidence_vector = calculate_confidence_vector(
+        passed_rules=rule_result["passed_rules"],
+        failed_rules=rule_result["failed_rules"],
+        total_rules=len(rule_engine.rules),
+        retrieval_similarity=1.0,
+        data_completeness=1.0,
+    )
 
-            if st.button(f"Select {plan}", key=f"btn_{plan}", use_container_width=True):
-                st.session_state.selected_plan = plan
+    governance_decision = apply_governance_layer(
+        deterministic_label=rule_result["deterministic_label"],
+        confidence_vector=confidence_vector,
+        crag_blocked=False,
+    )
 
-    render_plan(col1, "Free",
-                "Basic contract analysis<br>Limited audit visibility")
+    st.markdown("## Executive Summary")
+    st.write(f"Risk Level: {rule_result['deterministic_label']}")
+    st.write(f"Governance Decision: {governance_decision}")
+    st.write(f"Risk Score: {rule_result['eligibility_score']}")
 
-    render_plan(col2, "Pro",
-                "Full XAI trace<br>AI Advisory Layer<br>PDF Risk Reports<br><strong>Most Popular</strong>")
+    pdf_buffer = generate_pdf_report(
+        rule_result,
+        governance_decision,
+        document_text
+    )
 
-    render_plan(col3, "Enterprise",
-                "API Access<br>Batch Processing<br>Compliance Dashboard")
-
-    st.markdown(f"""
-    <div style="margin-top:2rem;padding:1rem;background:#1A202C;
-    border-left:4px solid #0D47A1;border-radius:8px;">
-        <strong>Selected Plan:</strong> {st.session_state.selected_plan}
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("### Plan Comparison")
-
-    st.table({
-        "Feature": ["Risk Engine", "XAI Trace", "Governance Override", "PDF Reports", "API Access"],
-        "Free": ["✔", "✖", "✖", "✖", "✖"],
-        "Pro": ["✔", "✔", "✔", "✔", "✖"],
-        "Enterprise": ["✔", "✔", "✔", "✔", "✔"]
-    })
-
-    st.markdown("""
-    <div style="margin-top:2rem;font-size:0.9rem;color:#A0AEC0;">
-    Demo Mode: Stripe integration placeholder.
-    </div>
-    """, unsafe_allow_html=True)
-
-# -------------------------------------------------
-# ASSESSMENTS
-# -------------------------------------------------
-elif view == "Assessments":
-    st.markdown('<div class="empty-state">No assessments yet.</div>', unsafe_allow_html=True)
-
-# -------------------------------------------------
-# DEVELOPER API
-# -------------------------------------------------
-elif view == "Developer API":
-    st.code("""
-curl -X POST https://api.nexusgovernance.ai/evaluate \\
--H "Content-Type: application/json" \\
--d '{"document_text": "Contract text here"}'
-""")
+    st.download_button(
+        label="Download Audit Report (PDF)",
+        data=pdf_buffer,
+        file_name="Nexus_Risk_Audit_Report.pdf",
+        mime="application/pdf",
+        use_container_width=True
+    )
