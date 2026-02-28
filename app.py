@@ -234,80 +234,24 @@ view = st.sidebar.radio(
 )
 
 # ------------------------------------------------
-# GLOBAL STYLE
-# ------------------------------------------------
-
-st.markdown("""
-<style>
-.block-container { padding-top: 1.8rem; }
-
-.capability-box {
-    background:#0f172a;
-    padding:22px;
-    border-radius:18px;
-    border:1px solid #1e293b;
-    margin-top:15px;
-    margin-bottom:40px;
-}
-
-.cap-chip {
-    display:inline-block;
-    padding:8px 16px;
-    margin:6px 8px 6px 0px;
-    border-radius:999px;
-    background:#111827;
-    border:1px solid #1f2937;
-    font-size:13px;
-}
-
-.cap-chip-highlight {
-    background:#1d4ed8;
-    border:1px solid #2563eb;
-}
-
-.status-chip {
-    display:inline-block;
-    padding:4px 12px;
-    border-radius:999px;
-    font-size:12px;
-    font-weight:500;
-}
-
-.chip-green { background:#16a34a; color:white; }
-.chip-red { background:#dc2626; color:white; }
-
-.audit-box {
-    background:#0b1220;
-    padding:20px;
-    border-radius:14px;
-    border:1px solid #1e293b;
-    font-family:monospace;
-    font-size:13px;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# ------------------------------------------------
 # HEADER
 # ------------------------------------------------
 
 st.title("Nexus Governance OS")
 st.caption("Deterministic Clause Benchmarking & Compliance Automation")
 
-st.markdown("""
-<div class="capability-box">
-    <div style="font-size:12px; letter-spacing:0.1em; color:#94a3b8; text-transform:uppercase;">
-        Platform Capabilities
-    </div>
-    <div style="margin-top:10px;">
-        <span class="cap-chip">Rule Engine</span>
-        <span class="cap-chip">Governance Layer</span>
-        <span class="cap-chip">SHA-256 Integrity</span>
-        <span class="cap-chip">UUID Traceability</span>
-        <span class="cap-chip cap-chip-highlight">AMD Ryzen AI Optimized</span>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+st.divider()
+
+st.subheader("Platform Capabilities")
+cap_cols = st.columns(5)
+
+cap_cols[0].info("Rule Engine")
+cap_cols[1].info("Governance Layer")
+cap_cols[2].info("SHA-256 Integrity")
+cap_cols[3].info("UUID Traceability")
+cap_cols[4].success("AMD Ryzen AI Optimized")
+
+st.divider()
 
 # ------------------------------------------------
 # DASHBOARD
@@ -315,10 +259,11 @@ st.markdown("""
 
 if view == "Dashboard":
 
-    st.markdown("## Nexus Command Center")
+    st.header("Nexus Command Center")
 
     uploaded_pdf = st.file_uploader("Upload Contract PDF", type=["pdf"])
-    document_text = st.text_area("Or Paste Contract Text", height=220)
+    document_text = st.text_area("Or Paste Contract Text", height=200)
+
     analyze_clicked = st.button("Analyze Contract", use_container_width=True)
 
     if analyze_clicked:
@@ -363,46 +308,17 @@ if view == "Dashboard":
         risk = rule_result["deterministic_label"]
         score = rule_result["eligibility_score"]
 
-        # Risk color mapping
-        risk_colors = {
-            "LOW_RISK": "#16a34a",
-            "MEDIUM_RISK": "#f59e0b",
-            "HIGH_RISK": "#dc2626"
-        }
+        # Risk banner
+        if risk == "LOW_RISK":
+            st.success(f"{risk.replace('_', ' ')} — Governance Action: {governance_action}")
+        elif risk == "MEDIUM_RISK":
+            st.warning(f"{risk.replace('_', ' ')} — Governance Action: {governance_action}")
+        else:
+            st.error(f"{risk.replace('_', ' ')} — Governance Action: {governance_action}")
 
-        accent = risk_colors.get(risk, "#2563eb")
+        st.write(f"Risk Score: {score}/100")
 
-        # Executive Risk Display
-        st.markdown(f"""
-        <div style="
-            background:#0f172a;
-            padding:28px;
-            border-radius:18px;
-            border:1px solid #1e293b;
-            margin-top:20px;
-            margin-bottom:30px;
-        ">
-            <div style="font-size:12px; letter-spacing:0.1em; color:#94a3b8; text-transform:uppercase;">
-                Risk Classification
-            </div>
-
-            <div style="
-                font-size:46px;
-                font-weight:600;
-                margin-top:6px;
-                color:{accent};
-            ">
-                {risk.replace("_", " ")}
-            </div>
-
-            <div style="margin-top:12px; color:#cbd5e1; font-size:15px;">
-                Governance Action: <strong>{governance_action}</strong><br>
-                Risk Score: {score}/100
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # KPI Grid (pure Streamlit for stability)
+        st.divider()
 
         col1, col2, col3 = st.columns(3)
 
@@ -415,27 +331,24 @@ if view == "Dashboard":
         col2.metric("Passed Rules", len(rule_result["passed_rules"]))
         col3.metric("Confidence Index", confidence_score)
 
-        # Gauge
+        st.divider()
 
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
             value=score,
-            gauge={
-                "axis": {"range": [0, 100]},
-                "bar": {"color": accent},
-            },
+            gauge={"axis": {"range": [0, 100]}},
         ))
 
-        fig.update_layout(height=260)
+        fig.update_layout(height=250)
         st.plotly_chart(fig, use_container_width=True)
 
 # ------------------------------------------------
-# GOVERNANCE LOGIC – CLAUSE BREAKDOWN
+# GOVERNANCE LOGIC
 # ------------------------------------------------
 
 elif view == "Ingestion":
 
-    st.markdown("## Governance Logic – Clause Breakdown")
+    st.header("Governance Logic – Clause Breakdown")
 
     if "analysis" not in st.session_state:
         st.info("Analyze a document first from Dashboard.")
@@ -445,24 +358,12 @@ elif view == "Ingestion":
         for rule in rule_engine.rules:
             triggered = rule.id in rule_result["failed_rules"]
 
-            if triggered:
-                status = "<span class='status-chip chip-red'>Flagged</span>"
-            else:
-                status = "<span class='status-chip chip-green'>Compliant</span>"
+            status = "Flagged" if triggered else "Compliant"
 
-            st.markdown(f"""
-            <div style="
-                background:#0f172a;
-                padding:16px;
-                border-radius:12px;
-                margin-bottom:10px;
-                border:1px solid #1e293b;
-            ">
-                <strong>{rule.id}</strong>
-                &nbsp;&nbsp; {status}
-                &nbsp;&nbsp; Weight: {rule.weight}
-            </div>
-            """, unsafe_allow_html=True)
+            st.write(f"Clause: {rule.id}")
+            st.write(f"Status: {status}")
+            st.write(f"Weight: {rule.weight}")
+            st.divider()
 
 # ------------------------------------------------
 # AUDIT LOG
@@ -470,22 +371,20 @@ elif view == "Ingestion":
 
 elif view == "Audit Log":
 
-    st.markdown("## Deterministic Decision Trace")
+    st.header("Deterministic Decision Trace")
 
     if "analysis" not in st.session_state:
         st.info("Run an analysis first.")
     else:
         rule_result = st.session_state["analysis"]["rule_result"]
 
-        st.markdown("<div class='audit-box'>", unsafe_allow_html=True)
-
-        st.write(f"[{datetime.utcnow()}] Rule Engine Initialized")
-        st.write(f"[{datetime.utcnow()}] Total Rules Loaded: {len(rule_engine.rules)}")
-        st.write(f"[{datetime.utcnow()}] Failed Rules: {rule_result['failed_rules']}")
-        st.write(f"[{datetime.utcnow()}] Deterministic Label: {rule_result['deterministic_label']}")
-        st.write(f"[{datetime.utcnow()}] Governance Action Applied")
-
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.code(f"""
+[{datetime.utcnow()}] Rule Engine Initialized
+[{datetime.utcnow()}] Total Rules Loaded: {len(rule_engine.rules)}
+[{datetime.utcnow()}] Failed Rules: {rule_result['failed_rules']}
+[{datetime.utcnow()}] Deterministic Label: {rule_result['deterministic_label']}
+[{datetime.utcnow()}] Governance Action Applied
+""")
 
 # ------------------------------------------------
 # DEVELOPER API
@@ -505,3 +404,5 @@ elif view == "Developer API":
 
 elif view == "Pricing":
     st.info("Enterprise licensing available upon request.")
+
+    
