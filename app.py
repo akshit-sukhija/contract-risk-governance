@@ -342,6 +342,30 @@ if view == "Dashboard":
         fig.update_layout(height=250)
         st.plotly_chart(fig, use_container_width=True)
 
+        st.divider()
+
+        st.subheader("Risk Audit Report")
+
+        pdf_buffer = generate_pdf_report(
+            rule_result=rule_result,
+            governance_action=governance_action,
+            confidence_vector=confidence_vector,
+            document_text=data["document_text"]
+        )
+
+        if pdf_buffer:
+
+            col_dl1, col_dl2, col_dl3 = st.columns([1,2,1])
+
+            with col_dl2:
+                st.download_button(
+                    label="⬇ Download Risk Audit Report (PDF)",
+                    data=pdf_buffer,
+                    file_name=f"Nexus_Governance_Report_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
+
 # ------------------------------------------------
 # GOVERNANCE LOGIC
 # ------------------------------------------------
