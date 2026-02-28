@@ -8,3 +8,5 @@ requests
 PyPDF2
 matplotlib
 reportlab
+plotly
+
