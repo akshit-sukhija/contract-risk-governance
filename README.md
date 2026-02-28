@@ -58,6 +58,7 @@ Nexus Governance OS is purpose-built to leverage **AMD hardware** for privacy an
 
 <img width="894" height="391" alt="image" src="https://github.com/user-attachments/assets/2d4892f2-b6d2-4a5b-9c52-f2251efce8b8" />
 
+
 > **📖 Technical Documentation**: Full system architecture and NPU optimization guides are included within this repository for developer review.
 
 ---
