@@ -233,66 +233,54 @@ view = st.sidebar.radio(
 )
 
 # ------------------------------------------------
-# GLOBAL STYLE (Executive Minimal System)
+# GLOBAL EXECUTIVE STYLE
 # ------------------------------------------------
 
 st.markdown("""
 <style>
-.block-container {
-    padding-top: 1.2rem;
-    padding-bottom: 2rem;
-    max-width: 1100px;
-}
+.block-container { padding-top: 1.5rem; }
 
-h1, h2, h3 {
-    letter-spacing: -0.5px;
-}
-
-.executive-strip {
-    padding: 10px 16px;
+.kpi-card {
     background: #0f172a;
-    border-left: 4px solid #2563EB;
-    border-radius: 8px;
-    margin-bottom: 28px;
-    font-size: 14px;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid #1e293b;
+    text-align: center;
+    transition: all 0.25s ease;
 }
 
-.risk-card {
+.kpi-card:hover {
+    border: 1px solid #2563eb;
+}
+
+.kpi-label {
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+    text-transform: uppercase;
+}
+
+.kpi-value {
+    font-size: 36px;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+.risk-banner {
+    background: #0f172a;
     padding: 28px;
     border-radius: 18px;
-    margin-top: 20px;
-    color: white;
-    animation: fadeIn 0.5s ease-in-out;
+    border: 1px solid #1e293b;
+    margin-bottom: 30px;
 }
 
-.metric-card {
-    background: #111827;
-    padding: 22px;
-    border-radius: 16px;
-    text-align: center;
-    border: 1px solid #1f2937;
-    animation: slideUp 0.4s ease-in-out;
-}
-
-.metric-card h4 {
-    margin-bottom: 6px;
-    font-weight: 500;
-    color: #9ca3af;
-}
-
-.metric-card h2 {
-    margin: 0;
-    font-size: 28px;
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {opacity: 0; transform: translateY(10px);}
+    to {opacity: 1; transform: translateY(0);}
 }
 </style>
 """, unsafe_allow_html=True)
@@ -305,7 +293,13 @@ st.title("Nexus Governance OS")
 st.caption("Deterministic AI for Contract Risk Governance")
 
 st.markdown("""
-<div class="executive-strip">
+<div style="
+padding:10px 16px;
+background:#0f172a;
+border-left:4px solid #2563EB;
+border-radius:10px;
+margin-bottom:25px;
+font-size:14px;">
 Rule Engine • Governance Layer • SHA-256 Integrity • UUID Traceability
 </div>
 """, unsafe_allow_html=True)
@@ -316,10 +310,6 @@ Rule Engine • Governance Layer • SHA-256 Integrity • UUID Traceability
 
 if view == "Dashboard":
 
-    # --------------------------
-    # INPUT PANEL
-    # --------------------------
-
     st.markdown("### Contract Input")
 
     uploaded_pdf = st.file_uploader("Upload Contract PDF", type=["pdf"])
@@ -329,7 +319,7 @@ if view == "Dashboard":
 
     if analyze_clicked:
 
-        with st.spinner("Analyzing contract under deterministic rule engine..."):
+        with st.spinner("Analyzing contract with deterministic rule engine..."):
 
             if uploaded_pdf:
                 document_text = extract_pdf_text(uploaded_pdf)
@@ -361,10 +351,6 @@ if view == "Dashboard":
                 "document_text": document_text
             }
 
-    # --------------------------
-    # RESULTS PANEL
-    # --------------------------
-
     if "analysis" in st.session_state:
 
         data = st.session_state["analysis"]
@@ -378,93 +364,101 @@ if view == "Dashboard":
 
         risk = rule_result["deterministic_label"]
 
-        color_map = {
-            "LOW_RISK": "#14532d",
-            "MEDIUM_RISK": "#7c2d12",
-            "HIGH_RISK": "#7f1d1d"
+        risk_colors = {
+            "LOW_RISK": "#16a34a",
+            "MEDIUM_RISK": "#f59e0b",
+            "HIGH_RISK": "#dc2626"
         }
 
+        accent = risk_colors.get(risk, "#2563eb")
+
         st.markdown(f"""
-        <div class="risk-card" style="background:{color_map.get(risk, "#1f2937")};">
-            <h2 style="margin:0;">{risk.replace("_", " ")}</h2>
-            <p style="margin:8px 0 0 0;">Governance Action: <strong>{governance_action}</strong></p>
-            <p style="margin:4px 0 0 0;">Risk Score: {rule_result['eligibility_score']}</p>
+        <div class="risk-banner fade-in">
+            <div style="font-size:14px; color:#94a3b8; letter-spacing:0.08em;">
+                RISK CLASSIFICATION
+            </div>
+            <div style="font-size:42px; font-weight:600; color:{accent}; margin-top:8px;">
+                {risk.replace("_", " ")}
+            </div>
+            <div style="margin-top:12px; color:#cbd5e1;">
+                Governance Action: <strong>{governance_action}</strong><br>
+                Risk Score: {rule_result['eligibility_score']}
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # --------------------------
-        # METRICS GRID
-        # --------------------------
+        # ---------------- KPI GRID ----------------
 
         col1, col2, col3 = st.columns(3)
 
+        confidence_score = round(
+            sum(confidence_vector.values()) / len(confidence_vector) * 100, 1
+        )
+
         with col1:
             st.markdown(f"""
-            <div class="metric-card">
-                <h4>Failed Rules</h4>
-                <h2>{len(rule_result["failed_rules"])}</h2>
+            <div class="kpi-card fade-in">
+                <div class="kpi-label">Failed Rules</div>
+                <div class="kpi-value">{len(rule_result["failed_rules"])}</div>
             </div>
             """, unsafe_allow_html=True)
 
         with col2:
             st.markdown(f"""
-            <div class="metric-card">
-                <h4>Passed Rules</h4>
-                <h2>{len(rule_result["passed_rules"])}</h2>
+            <div class="kpi-card fade-in">
+                <div class="kpi-label">Passed Rules</div>
+                <div class="kpi-value">{len(rule_result["passed_rules"])}</div>
             </div>
             """, unsafe_allow_html=True)
 
         with col3:
-            confidence_score = round(
-                sum(confidence_vector.values()) / len(confidence_vector), 2
-            )
-
             st.markdown(f"""
-            <div class="metric-card">
-                <h4>Confidence Index</h4>
-                <h2>{confidence_score}</h2>
+            <div class="kpi-card fade-in">
+                <div class="kpi-label">Confidence Index</div>
+                <div class="kpi-value">{confidence_score}%</div>
             </div>
             """, unsafe_allow_html=True)
 
-        # --------------------------
-        # RISK GAUGE
-        # --------------------------
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ---------------- RISK GAUGE ----------------
 
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
             value=rule_result["eligibility_score"],
             gauge={
                 "axis": {"range": [0, 100]},
-                "bar": {"color": "#ef4444"},
+                "bar": {"color": accent},
             },
         ))
 
-        fig.update_layout(height=260)
+        fig.update_layout(height=280, margin=dict(t=40, b=20))
+
         st.plotly_chart(fig, use_container_width=True)
 
-        # --------------------------
-        # DOWNLOAD BUTTON
-        # --------------------------
+        # ---------------- DOWNLOAD ----------------
 
-        pdf_buffer = generate_pdf_report(
-            rule_result,
-            governance_action,
-            confidence_vector,
-            document_text
-        )
+        try:
+            pdf_buffer = generate_pdf_report(
+                rule_result,
+                governance_action,
+                confidence_vector,
+                document_text
+            )
 
-        st.markdown("<br>", unsafe_allow_html=True)
+            st.download_button(
+                label="⬇ Download Risk Audit Report (PDF)",
+                data=pdf_buffer,
+                file_name="Nexus_Risk_Audit_Report.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
 
-        st.download_button(
-            label="⬇ Download Risk Audit Report (PDF)",
-            data=pdf_buffer,
-            file_name="Nexus_Risk_Audit_Report.pdf",
-            mime="application/pdf",
-            use_container_width=True
-        )
+        except Exception as e:
+            st.error("PDF generation failed.")
 
 # ------------------------------------------------
-# OTHER PAGES
+# OTHER VIEWS
 # ------------------------------------------------
 
 elif view == "Assessments":
