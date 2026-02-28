@@ -33,9 +33,6 @@ st.markdown("""
 body { background:#0F1117; color:#E5E7EB; }
 .block-container { padding:2rem 3rem; }
 
-.header-title { font-size:1.8rem; font-weight:700; }
-.header-sub { font-size:0.85rem; color:#6B7280; margin-bottom:2rem; }
-
 .module { font-size:0.75rem; letter-spacing:2px; text-transform:uppercase; color:#6B7280; margin-top:2rem; }
 
 .kpi-box {
@@ -57,6 +54,41 @@ body { background:#0F1117; color:#E5E7EB; }
     overflow:auto;
 }
 </style>
+""", unsafe_allow_html=True)
+
+# ------------------------------------------------
+# DEMO MODE BADGE
+# ------------------------------------------------
+st.markdown("""
+<div style='position:fixed;top:20px;right:20px;
+background:#1F2937;padding:6px 12px;
+border-radius:20px;font-size:0.7rem;color:#9CA3AF;z-index:9999;'>
+Demo Mode • Hackathon Build
+</div>
+""", unsafe_allow_html=True)
+
+# ------------------------------------------------
+# HERO SECTION
+# ------------------------------------------------
+st.markdown("""
+<div style='margin-bottom:2rem'>
+    <div style='font-size:2.2rem;font-weight:700'>Nexus Governance OS</div>
+    <div style='font-size:1rem;color:#9CA3AF;margin-top:6px'>
+        Deterministic AI for Contract Risk Governance
+    </div>
+    <div style='font-size:0.85rem;color:#6B7280;margin-top:4px'>
+        Built for the 2026 Legal-Tech Compliance Era
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div style='margin-bottom:2rem;color:#6B7280;font-size:0.8rem'>
+✓ Deterministic Rule Engine  
+✓ Governance Override Layer  
+✓ Explainable Audit Trace  
+✓ API-First Architecture
+</div>
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------
@@ -99,21 +131,19 @@ view = st.sidebar.radio(
 enable_ai = st.sidebar.checkbox("Enable AI Advisory Layer")
 
 # ------------------------------------------------
-# HEADER
-# ------------------------------------------------
-st.markdown("<div class='header-title'>Nexus Governance OS</div>", unsafe_allow_html=True)
-st.markdown("<div class='header-sub'>AI-Powered Deterministic Contract Risk Platform</div>", unsafe_allow_html=True)
-
-# ------------------------------------------------
 # DASHBOARD
 # ------------------------------------------------
 if view == "Dashboard":
 
     st.markdown("<div class='module'>Module 1 — Contract Ingestion</div>", unsafe_allow_html=True)
 
+    st.markdown("<div style='background:#161B22;padding:1.5rem;border-radius:8px;margin-bottom:1.5rem'>", unsafe_allow_html=True)
+
     uploaded_pdf = st.file_uploader("Upload Contract PDF", type=["pdf"])
     document_text = st.text_area("Or Paste Contract Text", height=180)
     analyze = st.button("Create Risk Assessment")
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
     if analyze:
 
@@ -123,9 +153,6 @@ if view == "Dashboard":
         if not document_text.strip():
             st.error("Contract text required.")
             st.stop()
-
-        # Risk Engine
-        st.markdown("<div class='module'>Module 2 — Deterministic Risk Engine</div>", unsafe_allow_html=True)
 
         rule_result = rule_engine.evaluate(document_text)
 
@@ -137,16 +164,33 @@ if view == "Dashboard":
             data_completeness=1.0,
         )
 
-        # Governance
-        st.markdown("<div class='module'>Module 3 — Governance Layer</div>", unsafe_allow_html=True)
-
         governance_action = apply_governance_layer(
             deterministic_label=rule_result["deterministic_label"],
             confidence_vector=confidence_vector,
             crag_blocked=False,
         )
 
-        # Portfolio Strip
+        # Executive Risk Summary
+        st.markdown(f"""
+        <div style='
+            background:#161B22;
+            padding:1.5rem;
+            border-radius:8px;
+            border-left:6px solid {risk_color(rule_result["deterministic_label"])};
+            margin-top:1.5rem;
+        '>
+            <div style='font-size:1.1rem;font-weight:600'>
+                Executive Risk Summary
+            </div>
+            <div style='margin-top:8px'>
+                <strong>Classification:</strong> {rule_result["deterministic_label"]}<br>
+                <strong>Governance Action:</strong> {governance_action}<br>
+                <strong>Risk Exposure Index:</strong> {rule_result["eligibility_score"]}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # KPI Strip
         col1, col2, col3 = st.columns(3)
 
         with col1:
@@ -165,78 +209,6 @@ if view == "Dashboard":
             st.markdown("<div class='kpi-box'>Governance Action</div>", unsafe_allow_html=True)
             st.markdown(f"<div class='kpi-value'>{governance_action}</div>", unsafe_allow_html=True)
 
-        # Store in session history
-        if "history" not in st.session_state:
-            st.session_state.history = []
-
-        st.session_state.history.insert(0, {
-            "risk": rule_result["deterministic_label"],
-            "score": rule_result["eligibility_score"],
-            "decision": governance_action,
-            "time": datetime.now().strftime("%H:%M:%S")
-        })
-
-        st.session_state.history = st.session_state.history[:5]
-
-        # Visualization
-        st.markdown("<div class='module'>Clause Risk Distribution</div>", unsafe_allow_html=True)
-
-        failed = rule_result["failed_rules"]
-        if failed:
-            labels = []
-            weights = []
-            for rule in rule_engine.rules:
-                if rule.id in failed:
-                    labels.append(rule.id)
-                    weights.append(rule.weight)
-
-            fig = go.Figure(go.Bar(
-                x=labels,
-                y=weights,
-                marker_color=risk_color(rule_result["deterministic_label"])
-            ))
-
-            fig.update_layout(
-                height=300,
-                plot_bgcolor="#0F1117",
-                paper_bgcolor="#0F1117",
-                font=dict(color="#E5E7EB")
-            )
-
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.success("No material risk clauses detected.")
-
-        # Highlight
-        st.markdown("<div class='module'>Clause Highlighting</div>", unsafe_allow_html=True)
-
-        highlighted = highlight_keywords(
-            document_text,
-            rule_engine.rules,
-            rule_result["failed_rules"]
-        )
-
-        st.markdown(
-            f"<div class='highlight-box'>{highlighted}</div>",
-            unsafe_allow_html=True
-        )
-
-        # AI Advisory
-        if enable_ai:
-            st.markdown("<div class='module'>AI Advisory Layer (Non-Authoritative)</div>", unsafe_allow_html=True)
-
-            trace = generate_decision_trace(
-                input_data={"document_text": document_text},
-                passed_rules=rule_result["passed_rules"],
-                failed_rules=rule_result["failed_rules"],
-                eligibility_score=rule_result["eligibility_score"],
-                confidence_vector=confidence_vector,
-                governance_decision=governance_action,
-            )
-
-            advisory = generate_ai_explanation(trace, governance_action)
-            st.write(advisory)
-
 # ------------------------------------------------
 # ASSESSMENTS VIEW
 # ------------------------------------------------
@@ -248,8 +220,10 @@ elif view == "Assessments":
         st.info("No assessments yet.")
     else:
         for item in st.session_state.history:
+            color = risk_color(item["risk"])
             st.markdown(f"""
-            <div style='background:#161B22;padding:1rem;border-radius:6px;margin-bottom:10px'>
+            <div style='background:#161B22;padding:1rem;border-radius:6px;
+            margin-bottom:10px;border-left:6px solid {color}'>
             <strong>{item['time']}</strong><br>
             Risk: {item['risk']}<br>
             Score: {item['score']}<br>
@@ -263,6 +237,7 @@ elif view == "Assessments":
 elif view == "Developer API":
 
     st.title("Nexus Governance API")
+    st.markdown("API-First Architecture for Enterprise Integration")
 
     st.markdown("### POST /evaluate")
 
@@ -274,20 +249,18 @@ curl -X POST https://api.nexusgovernance.ai/evaluate \\
 }'
 """)
 
-    st.markdown("### Sample Response")
-
-    st.json({
-        "risk_classification": "HIGH_RISK",
-        "risk_score": 55,
-        "governance_action": "ESCALATE"
-    })
-
 # ------------------------------------------------
 # PRICING
 # ------------------------------------------------
 elif view == "Pricing":
 
     st.title("Platform Plans")
+
+    st.markdown("""
+    <div style='font-size:1rem;color:#9CA3AF;margin-bottom:1.5rem'>
+    Flexible governance plans for legal teams and enterprises.
+    </div>
+    """, unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns(3)
 
@@ -302,7 +275,9 @@ elif view == "Pricing":
 
     with col2:
         st.markdown("""
-        <div style='background:#1E293B;padding:1.5rem;border-radius:8px;border:2px solid #3B82F6'>
+        <div style='background:#1E293B;padding:1.5rem;border-radius:8px;
+        border:2px solid #3B82F6;
+        box-shadow:0 0 20px rgba(59,130,246,0.15);'>
         <h3>Pro</h3>
         Full XAI trace<br>
         AI Advisory Layer<br>
