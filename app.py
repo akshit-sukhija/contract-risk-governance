@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use("Agg")
 import streamlit as st
 import re
 import hashlib
@@ -96,129 +98,128 @@ def add_watermark_footer(canvas_obj, doc, document_id):
 
 def generate_pdf_report(rule_result, governance_action, confidence_vector, document_text):
 
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    styles = getSampleStyleSheet()
-    elements = []
+    try:
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        styles = getSampleStyleSheet()
+        elements = []
 
-    timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
-    document_hash = generate_hash(document_text)
-    document_id = str(uuid.uuid4())
+        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+        document_hash = generate_hash(document_text)
+        document_id = str(uuid.uuid4())
 
-    verification_payload = json.dumps({
-        "product": "Nexus Governance OS",
-        "document_id": document_id,
-        "hash": document_hash,
-        "timestamp": timestamp,
-        "version": "prototype-v1"
-    }, separators=(",", ":"))
+        verification_payload = json.dumps({
+            "product": "Nexus Governance OS",
+            "document_id": document_id,
+            "hash": document_hash,
+            "timestamp": timestamp,
+            "version": "prototype-v1"
+        }, separators=(",", ":"))
 
-    # Header
-    elements.append(Paragraph("Nexus Governance OS - Risk Audit Report", styles["Heading1"]))
-    elements.append(Spacer(1, 12))
-    elements.append(Paragraph(f"Document ID: {document_id}", styles["Normal"]))
-    elements.append(Paragraph(f"Generated: {timestamp}", styles["Normal"]))
-    elements.append(Paragraph(f"SHA-256 Hash: {document_hash}", styles["Normal"]))
-    elements.append(Spacer(1, 16))
+        # HEADER
+        elements.append(Paragraph("Nexus Governance OS - Risk Audit Report", styles["Heading1"]))
+        elements.append(Spacer(1, 12))
+        elements.append(Paragraph(f"Document ID: {document_id}", styles["Normal"]))
+        elements.append(Paragraph(f"Generated: {timestamp}", styles["Normal"]))
+        elements.append(Paragraph(f"SHA-256 Hash: {document_hash}", styles["Normal"]))
+        elements.append(Spacer(1, 16))
 
-    # Executive Summary
-    elements.append(Paragraph("Executive Summary", styles["Heading2"]))
-    elements.append(Spacer(1, 8))
-    elements.append(Paragraph(f"Risk Level: {rule_result['deterministic_label']}", styles["Normal"]))
-    elements.append(Paragraph(f"Governance Action: {governance_action}", styles["Normal"]))
-    elements.append(Paragraph(f"Risk Score: {rule_result['eligibility_score']}", styles["Normal"]))
-    elements.append(Spacer(1, 16))
+        # EXEC SUMMARY
+        elements.append(Paragraph("Executive Summary", styles["Heading2"]))
+        elements.append(Spacer(1, 8))
+        elements.append(Paragraph(f"Risk Level: {rule_result['deterministic_label']}", styles["Normal"]))
+        elements.append(Paragraph(f"Governance Action: {governance_action}", styles["Normal"]))
+        elements.append(Paragraph(f"Risk Score: {rule_result['eligibility_score']}", styles["Normal"]))
+        elements.append(Spacer(1, 16))
 
-    # Governance Audit
-    elements.append(Paragraph("Governance Audit Trail", styles["Heading2"]))
-    elements.append(Spacer(1, 8))
-    elements.append(Paragraph(f"Confidence Vector: {confidence_vector}", styles["Normal"]))
-    elements.append(Spacer(1, 16))
+        # CLAUSE TABLE
+        table_data = [["Clause ID", "Triggered", "Weight"]]
+        for rule in rule_engine.rules:
+            triggered = "Yes" if rule.id in rule_result["failed_rules"] else "No"
+            weight = rule.weight if triggered == "Yes" else "-"
+            table_data.append([rule.id, triggered, str(weight)])
 
-    # Clause Table
-    table_data = [["Clause ID", "Triggered", "Weight"]]
-    for rule in rule_engine.rules:
-        triggered = "Yes" if rule.id in rule_result["failed_rules"] else "No"
-        weight = rule.weight if triggered == "Yes" else "-"
-        table_data.append([rule.id, triggered, str(weight)])
+        table = Table(table_data)
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ]))
 
-    table = Table(table_data)
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-    ]))
-
-    elements.append(table)
-    elements.append(Spacer(1, 20))
-
-    # Heatmap
-    heat_values = [
-        rule.weight if rule.id in rule_result["failed_rules"] else 0
-        for rule in rule_engine.rules
-    ]
-
-    if any(heat_values):
-        fig, ax = plt.subplots(figsize=(6, 1))
-        sns.heatmap(np.array([heat_values]), annot=True, cmap="Reds", cbar=False, ax=ax)
-        ax.set_xticklabels([r.id for r in rule_engine.rules], rotation=45)
-        ax.set_yticklabels(["Risk"])
-        plt.tight_layout()
-
-        img_buffer = BytesIO()
-        fig.savefig(img_buffer, format="png")
-        plt.close(fig)
-        img_buffer.seek(0)
-
-        elements.append(Image(img_buffer, width=6 * inch, height=2 * inch))
+        elements.append(table)
         elements.append(Spacer(1, 20))
 
-    # Digital Signature
-    elements.append(Paragraph("Digital Signature Validation", styles["Heading2"]))
-    elements.append(Spacer(1, 20))
-    elements.append(Paragraph("Digitally signed under internal governance controls.", styles["Normal"]))
-    elements.append(Spacer(1, 40))
-    elements.append(Paragraph("______________________________", styles["Normal"]))
-    elements.append(Paragraph("Authorized Compliance Officer", styles["Normal"]))
+        # HEATMAP (PURE MATPLOTLIB)
+        heat_values = [
+            rule.weight if rule.id in rule_result["failed_rules"] else 0
+            for rule in rule_engine.rules
+        ]
 
-    # Highlighted Clauses
-    elements.append(PageBreak())
-    elements.append(Paragraph("Highlighted Clause Export", styles["Heading1"]))
-    elements.append(Spacer(1, 12))
+        if any(heat_values):
+            fig, ax = plt.subplots(figsize=(6, 1))
+            ax.imshow([heat_values], cmap="Reds")
+            ax.set_xticks(range(len(rule_engine.rules)))
+            ax.set_xticklabels([r.id for r in rule_engine.rules], rotation=45)
+            ax.set_yticks([])
+            plt.tight_layout()
 
-    highlighted = highlight_text(document_text, rule_result["failed_rules"])
-    for i in range(0, len(highlighted), 2000):
-        elements.append(Paragraph(highlighted[i:i+2000], styles["Normal"]))
-        elements.append(Spacer(1, 6))
+            img_buffer = BytesIO()
+            fig.savefig(img_buffer, format="png")
+            plt.close(fig)
+            img_buffer.seek(0)
 
-    # Verification Page
-    elements.append(PageBreak())
-    elements.append(Paragraph("Tamper Detection & Verification", styles["Heading1"]))
-    elements.append(Spacer(1, 12))
-    elements.append(Paragraph(f"Document Hash: {document_hash}", styles["Normal"]))
-    elements.append(Paragraph(f"Document ID: {document_id}", styles["Normal"]))
-    elements.append(Spacer(1, 20))
+            elements.append(Image(img_buffer, width=6 * inch, height=2 * inch))
+            elements.append(Spacer(1, 20))
 
-    qr_code = qr.QrCodeWidget(verification_payload)
-    bounds = qr_code.getBounds()
-    size = 2 * inch
-    scale = size / (bounds[2] - bounds[0])
-    drawing = Drawing(size, size, transform=[scale, 0, 0, scale, 0, 0])
-    drawing.add(qr_code)
-    elements.append(drawing)
+        # DIGITAL SIGNATURE
+        elements.append(Paragraph("Digital Signature Validation", styles["Heading2"]))
+        elements.append(Spacer(1, 20))
+        elements.append(Paragraph("Digitally signed under internal governance controls.", styles["Normal"]))
+        elements.append(Spacer(1, 40))
+        elements.append(Paragraph("______________________________", styles["Normal"]))
+        elements.append(Paragraph("Authorized Compliance Officer", styles["Normal"]))
 
-    try:
+        # HIGHLIGHTED EXPORT (SAFE CHUNKING)
+        elements.append(PageBreak())
+        elements.append(Paragraph("Highlighted Clause Export", styles["Heading1"]))
+        elements.append(Spacer(1, 12))
+
+        highlighted = highlight_text(document_text, rule_result["failed_rules"])
+        safe_text = highlighted.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+        for i in range(0, len(safe_text), 1500):
+            elements.append(Paragraph(safe_text[i:i+1500], styles["Normal"]))
+            elements.append(Spacer(1, 6))
+
+        # VERIFICATION PAGE
+        elements.append(PageBreak())
+        elements.append(Paragraph("Tamper Detection & Verification", styles["Heading1"]))
+        elements.append(Spacer(1, 12))
+        elements.append(Paragraph(f"Document Hash: {document_hash}", styles["Normal"]))
+        elements.append(Paragraph(f"Document ID: {document_id}", styles["Normal"]))
+        elements.append(Spacer(1, 20))
+
+        # QR (Correct Flowable)
+        qr_code = qr.QrCodeWidget(verification_payload)
+        bounds = qr_code.getBounds()
+        size = 2 * inch
+        scale = size / (bounds[2] - bounds[0])
+        drawing = Drawing(size, size, transform=[scale, 0, 0, scale, 0, 0])
+        drawing.add(qr_code)
+        elements.append(drawing)
+
         doc.build(
             elements,
             onFirstPage=lambda c, d: add_watermark_footer(c, d, document_id),
             onLaterPages=lambda c, d: add_watermark_footer(c, d, document_id)
         )
-    except Exception:
+
+        buffer.seek(0)
+        return buffer
+
+    except Exception as e:
+        st.error(f"PDF Error: {str(e)}")
         return None
-
-    buffer.seek(0)
-    return buffer
-
 # ------------------------------------------------
 # SIDEBAR NAVIGATION
 # ------------------------------------------------
