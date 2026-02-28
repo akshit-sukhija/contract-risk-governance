@@ -75,9 +75,9 @@ def highlight_text(text, failed_rules):
     return highlighted
 
 def add_watermark_footer(canvas_obj, doc, document_id):
-    canvas_obj.saveState()
 
-    # Watermark
+    # -------- WATERMARK --------
+    canvas_obj.saveState()
     canvas_obj.setFont("Helvetica", 60)
     canvas_obj.setFillColorRGB(0.92, 0.92, 0.92)
     canvas_obj.translate(300, 400)
@@ -85,11 +85,11 @@ def add_watermark_footer(canvas_obj, doc, document_id):
     canvas_obj.drawCentredString(0, 0, "CONFIDENTIAL")
     canvas_obj.restoreState()
 
-    # Footer
+    # -------- FOOTER --------
+    canvas_obj.saveState()
     canvas_obj.setFont("Helvetica", 8)
     canvas_obj.drawString(40, 20, f"Nexus Governance OS | Document ID: {document_id}")
     canvas_obj.drawRightString(570, 20, f"Page {doc.page}")
-
     canvas_obj.restoreState()
 
 # ------------------------------------------------
