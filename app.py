@@ -223,6 +223,7 @@ def generate_pdf_report(rule_result, governance_action, confidence_vector, docum
     except Exception as e:
         st.error(f"PDF Error: {str(e)}")
         return None
+
 # ------------------------------------------------
 # SIDEBAR NAVIGATION
 # ------------------------------------------------
@@ -233,112 +234,88 @@ view = st.sidebar.radio(
 )
 
 # ------------------------------------------------
-# GLOBAL STYLE – EXECUTIVE LEGAL-TECH
+# GLOBAL STYLE
 # ------------------------------------------------
 
 st.markdown("""
 <style>
-.block-container { padding-top: 1.5rem; }
+.block-container { padding-top: 1.8rem; }
 
-.kpi-card {
-    background: #0f172a;
-    padding: 24px;
-    border-radius: 16px;
-    border: 1px solid #1e293b;
-    text-align: center;
+.capability-box {
+    background:#0f172a;
+    padding:22px;
+    border-radius:18px;
+    border:1px solid #1e293b;
+    margin-top:15px;
+    margin-bottom:40px;
 }
 
-.kpi-label {
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    color: #94a3b8;
-    text-transform: uppercase;
+.cap-chip {
+    display:inline-block;
+    padding:8px 16px;
+    margin:6px 8px 6px 0px;
+    border-radius:999px;
+    background:#111827;
+    border:1px solid #1f2937;
+    font-size:13px;
 }
 
-.kpi-value {
-    font-size: 34px;
-    font-weight: 600;
-    margin-top: 8px;
+.cap-chip-highlight {
+    background:#1d4ed8;
+    border:1px solid #2563eb;
 }
 
 .status-chip {
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
+    display:inline-block;
+    padding:4px 12px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:500;
 }
 
-.chip-green { background: #16a34a; color: white; }
-.chip-red { background: #dc2626; color: white; }
-.chip-amber { background: #f59e0b; color: white; }
+.chip-green { background:#16a34a; color:white; }
+.chip-red { background:#dc2626; color:white; }
 
 .audit-box {
-    background: #0b1220;
-    padding: 18px;
-    border-radius: 14px;
-    border: 1px solid #1e293b;
-    font-family: monospace;
-    font-size: 13px;
-    color: #cbd5e1;
+    background:#0b1220;
+    padding:20px;
+    border-radius:14px;
+    border:1px solid #1e293b;
+    font-family:monospace;
+    font-size:13px;
 }
 </style>
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------
-# HEADER – CLEAN EXECUTIVE FORMAT
+# HEADER
 # ------------------------------------------------
 
 st.title("Nexus Governance OS")
 st.caption("Deterministic Clause Benchmarking & Compliance Automation")
 
 st.markdown("""
-<div style="
-margin-top:8px;
-margin-bottom:30px;
-padding:18px 20px;
-background:#0f172a;
-border-radius:14px;
-border:1px solid #1e293b;
-">
-
-<div style="font-size:13px; color:#94a3b8; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:10px;">
-Platform Capabilities
-</div>
-
-<div style="display:flex; flex-wrap:wrap; gap:12px;">
-
-<span style="background:#111827; padding:6px 12px; border-radius:20px; border:1px solid #1f2937; font-size:13px;">
-Rule Engine
-</span>
-
-<span style="background:#111827; padding:6px 12px; border-radius:20px; border:1px solid #1f2937; font-size:13px;">
-Governance Layer
-</span>
-
-<span style="background:#111827; padding:6px 12px; border-radius:20px; border:1px solid #1f2937; font-size:13px;">
-SHA-256 Integrity
-</span>
-
-<span style="background:#111827; padding:6px 12px; border-radius:20px; border:1px solid #1f2937; font-size:13px;">
-UUID Traceability
-</span>
-
-<span style="background:#1e3a8a; padding:6px 12px; border-radius:20px; border:1px solid #2563eb; font-size:13px; color:white;">
-AMD Ryzen AI Optimized
-</span>
-
-</div>
+<div class="capability-box">
+    <div style="font-size:12px; letter-spacing:0.1em; color:#94a3b8; text-transform:uppercase;">
+        Platform Capabilities
+    </div>
+    <div style="margin-top:10px;">
+        <span class="cap-chip">Rule Engine</span>
+        <span class="cap-chip">Governance Layer</span>
+        <span class="cap-chip">SHA-256 Integrity</span>
+        <span class="cap-chip">UUID Traceability</span>
+        <span class="cap-chip cap-chip-highlight">AMD Ryzen AI Optimized</span>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------
-# DASHBOARD – NEXUS COMMAND CENTER
+# DASHBOARD
 # ------------------------------------------------
 
 if view == "Dashboard":
 
     st.markdown("## Nexus Command Center")
-    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
     uploaded_pdf = st.file_uploader("Upload Contract PDF", type=["pdf"])
     document_text = st.text_area("Or Paste Contract Text", height=220)
@@ -346,37 +323,35 @@ if view == "Dashboard":
 
     if analyze_clicked:
 
-        with st.spinner("Processing document with AMD Ryzen AI acceleration..."):
+        if uploaded_pdf:
+            document_text = extract_pdf_text(uploaded_pdf)
 
-            if uploaded_pdf:
-                document_text = extract_pdf_text(uploaded_pdf)
+        if not document_text.strip():
+            st.warning("Contract text required.")
+            st.stop()
 
-            if not document_text.strip():
-                st.warning("Contract text required.")
-                st.stop()
+        rule_result = rule_engine.evaluate(document_text)
 
-            rule_result = rule_engine.evaluate(document_text)
+        confidence_vector = calculate_confidence_vector(
+            passed_rules=rule_result["passed_rules"],
+            failed_rules=rule_result["failed_rules"],
+            total_rules=len(rule_engine.rules),
+            retrieval_similarity=1.0,
+            data_completeness=1.0,
+        )
 
-            confidence_vector = calculate_confidence_vector(
-                passed_rules=rule_result["passed_rules"],
-                failed_rules=rule_result["failed_rules"],
-                total_rules=len(rule_engine.rules),
-                retrieval_similarity=1.0,
-                data_completeness=1.0,
-            )
+        governance_action = apply_governance_layer(
+            deterministic_label=rule_result["deterministic_label"],
+            confidence_vector=confidence_vector,
+            crag_blocked=False,
+        )
 
-            governance_action = apply_governance_layer(
-                deterministic_label=rule_result["deterministic_label"],
-                confidence_vector=confidence_vector,
-                crag_blocked=False,
-            )
-
-            st.session_state["analysis"] = {
-                "rule_result": rule_result,
-                "governance_action": governance_action,
-                "confidence_vector": confidence_vector,
-                "document_text": document_text
-            }
+        st.session_state["analysis"] = {
+            "rule_result": rule_result,
+            "governance_action": governance_action,
+            "confidence_vector": confidence_vector,
+            "document_text": document_text
+        }
 
     if "analysis" in st.session_state:
 
@@ -384,9 +359,9 @@ if view == "Dashboard":
         rule_result = data["rule_result"]
         governance_action = data["governance_action"]
         confidence_vector = data["confidence_vector"]
-        document_text = data["document_text"]
 
         risk = rule_result["deterministic_label"]
+        score = rule_result["eligibility_score"]
 
         risk_colors = {
             "LOW_RISK": "#16a34a",
@@ -396,10 +371,6 @@ if view == "Dashboard":
 
         accent = risk_colors.get(risk, "#2563eb")
 
-        # ------------------------------------------------
-        # Executive Risk Display (Minimal Authority Style)
-        # ------------------------------------------------
-
         st.markdown(f"""
         <div style="
             background:#0f172a;
@@ -407,7 +378,7 @@ if view == "Dashboard":
             border-radius:18px;
             border:1px solid #1e293b;
             margin-top:20px;
-            margin-bottom:28px;
+            margin-bottom:30px;
         ">
             <div style="font-size:12px; letter-spacing:0.1em; color:#94a3b8; text-transform:uppercase;">
                 Risk Classification
@@ -424,28 +395,25 @@ if view == "Dashboard":
 
             <div style="margin-top:12px; color:#cbd5e1; font-size:15px;">
                 Governance Action: <strong>{governance_action}</strong><br>
-                Risk Score: {rule_result["eligibility_score"]}/100
+                Risk Score: {score}/100
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # ------------------------------------------------
-        # KPI GRID (Cleaner Typography Hierarchy)
-        # ------------------------------------------------
-
         col1, col2, col3 = st.columns(3)
 
         confidence_score = round(
-            sum(confidence_vector.values()) / len(confidence_vector) * 100, 1
+            sum(confidence_vector.values()) / len(confidence_vector),
+            2
         )
 
-        kpi_data = [
+        metrics = [
             ("Failed Rules", len(rule_result["failed_rules"])),
             ("Passed Rules", len(rule_result["passed_rules"])),
-            ("Confidence Index", f"{confidence_score}%")
+            ("Confidence Index", confidence_score)
         ]
 
-        for col, (label, value) in zip([col1, col2, col3], kpi_data):
+        for col, (label, value) in zip([col1, col2, col3], metrics):
             with col:
                 st.markdown(f"""
                 <div style="
@@ -465,7 +433,7 @@ if view == "Dashboard":
                     </div>
 
                     <div style="
-                        font-size:38px;
+                        font-size:36px;
                         font-weight:600;
                         margin-top:10px;
                         color:white;
@@ -475,50 +443,20 @@ if view == "Dashboard":
                 </div>
                 """, unsafe_allow_html=True)
 
-        st.markdown("<div style='height:30px'></div>", unsafe_allow_html=True)
-
-        # ------------------------------------------------
-        # Risk Gauge (Semantic Color)
-        # ------------------------------------------------
-
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
-            value=rule_result["eligibility_score"],
+            value=score,
             gauge={
                 "axis": {"range": [0, 100]},
                 "bar": {"color": accent},
             },
         ))
 
-        fig.update_layout(height=260, margin=dict(t=30, b=10))
+        fig.update_layout(height=260)
         st.plotly_chart(fig, use_container_width=True)
 
-        st.markdown("<div style='height:25px'></div>", unsafe_allow_html=True)
-
-        # ------------------------------------------------
-        # PDF Download
-        # ------------------------------------------------
-
-        try:
-            pdf_buffer = generate_pdf_report(
-                rule_result,
-                governance_action,
-                confidence_vector,
-                document_text
-            )
-
-            st.download_button(
-                label="Download Risk Audit Report (PDF)",
-                data=pdf_buffer,
-                file_name="Nexus_Risk_Audit_Report.pdf",
-                mime="application/pdf",
-                use_container_width=True
-            )
-        except:
-            st.error("PDF generation failed.")
-
 # ------------------------------------------------
-# GOVERNANCE LOGIC VIEW (CLAUSE BREAKDOWN)
+# GOVERNANCE LOGIC – CLAUSE BREAKDOWN
 # ------------------------------------------------
 
 elif view == "Ingestion":
@@ -539,17 +477,21 @@ elif view == "Ingestion":
                 status = "<span class='status-chip chip-green'>Compliant</span>"
 
             st.markdown(f"""
-            <div style="background:#0f172a;
-                        padding:14px;
-                        border-radius:10px;
-                        margin-bottom:8px;
-                        border:1px solid #1e293b;">
-                <strong>{rule.id}</strong> &nbsp;&nbsp; {status} &nbsp;&nbsp; Weight: {rule.weight}
+            <div style="
+                background:#0f172a;
+                padding:16px;
+                border-radius:12px;
+                margin-bottom:10px;
+                border:1px solid #1e293b;
+            ">
+                <strong>{rule.id}</strong>
+                &nbsp;&nbsp; {status}
+                &nbsp;&nbsp; Weight: {rule.weight}
             </div>
             """, unsafe_allow_html=True)
 
 # ------------------------------------------------
-# XAI AUDIT LOG
+# AUDIT LOG
 # ------------------------------------------------
 
 elif view == "Audit Log":
@@ -576,12 +518,12 @@ elif view == "Audit Log":
 # ------------------------------------------------
 
 elif view == "Developer API":
-    api_example = """
+
+    st.code("""
 curl -X POST https://api.nexusgovernance.ai/evaluate \\
 -H "Content-Type: application/json" \\
 -d '{"document_text": "Contract text here"}'
-"""
-    st.code(api_example)
+""")
 
 # ------------------------------------------------
 # PRICING
