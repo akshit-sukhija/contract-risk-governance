@@ -87,7 +87,13 @@ The Nexus Architect engine is vertically agnostic. We plan to scale this logic i
 
 ## 👥 Team: Nexus Architects
 
-* **Akshit Sukhija** - Team Leader
+* **Akshit Sukhija** — *Team Leader & System Architect*
+    * Designed the Five-Layer Deterministic Architecture and core Rule Engine logic.
+* **Tanishq Khanna** — *Full-Stack Developer*
+    * Developed the Streamlit Dashboard, FastAPI backend, and SHA-256 integrity hashing.
+* **Tanish Sabharwal** — *AI & Optimization Lead*
+    * Optimized LLM inference for AMD Ryzen™ AI NPUs via ONNX/DirectML and managed FAISS vector retrieval.
+
 * **Nexus Architects** - *AMD Slingshot Hackathon 2026 Submission*
 
 ---
