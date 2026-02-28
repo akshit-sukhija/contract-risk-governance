@@ -1,20 +1,19 @@
 import streamlit as st
 import re
 from pathlib import Path
-from typing import Optional
 import PyPDF2
 import plotly.graph_objects as go
+import plotly.express as px
 from datetime import datetime
+import time
 
 from explainable_ai.core.engine.rule_engine import RuleEngine
 from explainable_ai.core.governance.governance import apply_governance_layer
 from explainable_ai.core.scoring.scoring import calculate_confidence_vector
-from explainable_ai.core.trace.decision_trace import generate_decision_trace
-from explainable_ai.core.explanation.ai_explainer import generate_ai_explanation
 
-# ------------------------------------------------
+# -------------------------------------------------
 # CONFIG
-# ------------------------------------------------
+# -------------------------------------------------
 st.set_page_config(
     page_title="Nexus Governance OS",
     layout="wide",
@@ -25,75 +24,131 @@ BASE_DIR = Path(__file__).resolve().parent
 POLICY_PATH = BASE_DIR / "explainable_ai" / "policies" / "rules.yaml"
 rule_engine = RuleEngine(POLICY_PATH)
 
-# ------------------------------------------------
-# THEME
-# ------------------------------------------------
+# -------------------------------------------------
+# ENTERPRISE DESIGN SYSTEM
+# -------------------------------------------------
 st.markdown("""
 <style>
-body { background:#0F1117; color:#E5E7EB; }
-.block-container { padding:2rem 3rem; }
+:root {
+    --primary: #0D47A1;
+    --primary-light: #1565C0;
+    --accent: #00BCD4;
 
-.module { font-size:0.75rem; letter-spacing:2px; text-transform:uppercase; color:#6B7280; margin-top:2rem; }
+    --success: #4CAF50;
+    --warning: #FF9800;
+    --error: #F44336;
 
-.kpi-box {
-    background:#161B22;
-    padding:1.3rem;
-    border-radius:8px;
+    --bg-dark: #0F1419;
+    --bg-card: #1A202C;
+    --border: #2D3748;
+
+    --text-primary: #FFFFFF;
+    --text-secondary: #A0AEC0;
+    --text-muted: #718096;
+}
+
+body {
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+}
+
+.block-container {
+    padding: 3rem 4rem;
+    max-width: 1200px;
+}
+
+.hero {
+    padding-bottom: 2rem;
+    margin-bottom: 3rem;
+    border-bottom: 2px solid var(--primary);
+}
+
+.hero h1 {
+    font-size: 2.6rem;
+    font-weight: 700;
+}
+
+.hero p {
+    color: var(--text-secondary);
+}
+
+.module {
+    font-size: 0.8rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    transition: 0.2s ease;
+}
+
+.card:hover {
+    border-color: var(--primary);
+}
+
+.stButton > button {
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+    padding: 12px 24px;
+    border-radius: 6px;
+    border: none;
+    transition: 0.2s ease;
+}
+
+.stButton > button:hover {
+    background: var(--primary-light);
+    transform: translateY(-1px);
+}
+
+.exec-banner {
+    padding: 1.8rem;
+    border-radius: 8px;
+    margin-top: 2rem;
+}
+
+.kpi-strip {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
+
+.kpi-card {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    border-radius: 8px;
 }
 
 .kpi-value {
-    font-size:2rem;
-    font-weight:600;
+    font-size: 2rem;
+    font-weight: 700;
 }
 
-.highlight-box {
-    padding:1rem;
-    border:1px solid #1F2937;
-    border-radius:6px;
-    max-height:350px;
-    overflow:auto;
+.empty-state {
+    padding: 4rem;
+    text-align: center;
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    color: var(--text-secondary);
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ------------------------------------------------
-# DEMO MODE BADGE
-# ------------------------------------------------
-st.markdown("""
-<div style='position:fixed;top:20px;right:20px;
-background:#1F2937;padding:6px 12px;
-border-radius:20px;font-size:0.7rem;color:#9CA3AF;z-index:9999;'>
-Demo Mode • Hackathon Build
-</div>
-""", unsafe_allow_html=True)
-
-# ------------------------------------------------
-# HERO SECTION
-# ------------------------------------------------
-st.markdown("""
-<div style='margin-bottom:2rem'>
-    <div style='font-size:2.2rem;font-weight:700'>Nexus Governance OS</div>
-    <div style='font-size:1rem;color:#9CA3AF;margin-top:6px'>
-        Deterministic AI for Contract Risk Governance
-    </div>
-    <div style='font-size:0.85rem;color:#6B7280;margin-top:4px'>
-        Built for the 2026 Legal-Tech Compliance Era
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-<div style='margin-bottom:2rem;color:#6B7280;font-size:0.8rem'>
-✓ Deterministic Rule Engine  
-✓ Governance Override Layer  
-✓ Explainable Audit Trace  
-✓ API-First Architecture
-</div>
-""", unsafe_allow_html=True)
-
-# ------------------------------------------------
+# -------------------------------------------------
 # HELPERS
-# ------------------------------------------------
+# -------------------------------------------------
 def extract_pdf_text(uploaded_file):
     reader = PyPDF2.PdfReader(uploaded_file)
     text = ""
@@ -101,58 +156,54 @@ def extract_pdf_text(uploaded_file):
         text += page.extract_text() or ""
     return text
 
-def highlight_keywords(text, rules, failed_rules):
-    highlighted = text
-    for rule in rules:
-        if rule.id in failed_rules:
-            for keyword in rule.keywords:
-                pattern = re.compile(re.escape(keyword), re.IGNORECASE)
-                highlighted = pattern.sub(
-                    lambda m: f"<span style='color:#EF4444;font-weight:600'>{m.group(0)}</span>",
-                    highlighted
-                )
-    return highlighted
-
 def risk_color(level):
     return {
-        "HIGH_RISK": "#EF4444",
-        "MEDIUM_RISK": "#F59E0B",
-        "LOW_RISK": "#10B981"
-    }.get(level, "#3B82F6")
+        "HIGH_RISK": "#F44336",
+        "MEDIUM_RISK": "#FF9800",
+        "LOW_RISK": "#4CAF50"
+    }.get(level, "#0D47A1")
 
-# ------------------------------------------------
-# SIDEBAR NAVIGATION
-# ------------------------------------------------
-view = st.sidebar.radio(
-    "Platform Navigation",
-    ["Dashboard", "Assessments", "Developer API", "Pricing"]
-)
+def animate_metric(label, value):
+    placeholder = st.empty()
+    for i in range(0, value + 1, max(1, value // 20 or 1)):
+        placeholder.markdown(f"<div class='kpi-card'><div>{label}</div><div class='kpi-value'>{i}</div></div>", unsafe_allow_html=True)
+        time.sleep(0.01)
+    placeholder.markdown(f"<div class='kpi-card'><div>{label}</div><div class='kpi-value'>{value}</div></div>", unsafe_allow_html=True)
 
-enable_ai = st.sidebar.checkbox("Enable AI Advisory Layer")
+# -------------------------------------------------
+# SIDEBAR
+# -------------------------------------------------
+view = st.sidebar.radio("Platform Navigation",
+                        ["Dashboard", "Assessments", "Developer API", "Pricing"])
 
-# ------------------------------------------------
+# -------------------------------------------------
+# HERO
+# -------------------------------------------------
+st.markdown("""
+<div class="hero">
+<h1>Nexus Governance OS</h1>
+<p>Deterministic AI for Contract Risk Governance • Built for the 2026 Compliance Era</p>
+</div>
+""", unsafe_allow_html=True)
+
+# -------------------------------------------------
 # DASHBOARD
-# ------------------------------------------------
+# -------------------------------------------------
 if view == "Dashboard":
 
-    st.markdown("<div class='module'>Module 1 — Contract Ingestion</div>", unsafe_allow_html=True)
+    st.markdown('<div class="module">Module 1 — Contract Ingestion</div>', unsafe_allow_html=True)
 
-    st.markdown("<div style='background:#161B22;padding:1.5rem;border-radius:8px;margin-bottom:1.5rem'>", unsafe_allow_html=True)
+    st.markdown('<div class="card">', unsafe_allow_html=True)
 
     uploaded_pdf = st.file_uploader("Upload Contract PDF", type=["pdf"])
-    document_text = st.text_area("Or Paste Contract Text", height=180)
-    analyze = st.button("Create Risk Assessment")
+    document_text = st.text_area("Or Paste Contract Text", height=200)
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    if analyze:
+    if document_text.strip() or uploaded_pdf:
 
         if uploaded_pdf:
             document_text = extract_pdf_text(uploaded_pdf)
-
-        if not document_text.strip():
-            st.error("Contract text required.")
-            st.stop()
 
         rule_result = rule_engine.evaluate(document_text)
 
@@ -170,127 +221,110 @@ if view == "Dashboard":
             crag_blocked=False,
         )
 
-        # Executive Risk Summary
+        # Executive Banner
         st.markdown(f"""
-        <div style='
-            background:#161B22;
-            padding:1.5rem;
-            border-radius:8px;
-            border-left:6px solid {risk_color(rule_result["deterministic_label"])};
-            margin-top:1.5rem;
-        '>
-            <div style='font-size:1.1rem;font-weight:600'>
-                Executive Risk Summary
-            </div>
-            <div style='margin-top:8px'>
-                <strong>Classification:</strong> {rule_result["deterministic_label"]}<br>
-                <strong>Governance Action:</strong> {governance_action}<br>
-                <strong>Risk Exposure Index:</strong> {rule_result["eligibility_score"]}
-            </div>
+        <div class="exec-banner" style="border-left:6px solid {risk_color(rule_result['deterministic_label'])}; background:#1A202C;">
+            <h3>Executive Risk Summary</h3>
+            <p><strong>Risk Classification:</strong> {rule_result['deterministic_label']}</p>
+            <p><strong>Governance Action:</strong> {governance_action}</p>
         </div>
         """, unsafe_allow_html=True)
 
-        # KPI Strip
+        # KPI Strip with animation
         col1, col2, col3 = st.columns(3)
-
         with col1:
-            st.markdown("<div class='kpi-box'>Risk Exposure Index</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='kpi-value'>{rule_result['eligibility_score']}</div>", unsafe_allow_html=True)
-
+            animate_metric("Risk Exposure Index", rule_result["eligibility_score"])
         with col2:
-            st.markdown("<div class='kpi-box'>Risk Classification</div>", unsafe_allow_html=True)
-            st.markdown(
-                f"<div class='kpi-value' style='color:{risk_color(rule_result['deterministic_label'])}'>"
-                f"{rule_result['deterministic_label']}</div>",
-                unsafe_allow_html=True
-            )
-
+            animate_metric("Failed Rules", len(rule_result["failed_rules"]))
         with col3:
-            st.markdown("<div class='kpi-box'>Governance Action</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='kpi-value'>{governance_action}</div>", unsafe_allow_html=True)
+            animate_metric("Passed Rules", len(rule_result["passed_rules"]))
 
-# ------------------------------------------------
-# ASSESSMENTS VIEW
-# ------------------------------------------------
+        # Risk Severity Donut Gauge
+        fig_gauge = go.Figure(go.Pie(
+            values=[rule_result["eligibility_score"],
+                    100 - rule_result["eligibility_score"]],
+            hole=0.7
+        ))
+
+        fig_gauge.update_layout(
+            title="Risk Severity Gauge",
+            showlegend=False,
+            paper_bgcolor="#0F1419",
+            font=dict(color="white")
+        )
+
+        st.plotly_chart(fig_gauge, use_container_width=True)
+
+        # Pie Chart
+        fig_pie = px.pie(
+            names=["Passed", "Failed"],
+            values=[len(rule_result["passed_rules"]),
+                    len(rule_result["failed_rules"])],
+            hole=0.5
+        )
+        fig_pie.update_layout(paper_bgcolor="#0F1419",
+                              font_color="white")
+        st.plotly_chart(fig_pie, use_container_width=True)
+
+        # Radar Chart
+        categories = list(confidence_vector.keys())
+        values = list(confidence_vector.values())
+
+        fig_radar = go.Figure()
+        fig_radar.add_trace(go.Scatterpolar(
+            r=values,
+            theta=categories,
+            fill='toself'
+        ))
+        fig_radar.update_layout(
+            polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
+            paper_bgcolor="#0F1419",
+            font=dict(color="white"),
+            showlegend=False
+        )
+        st.plotly_chart(fig_radar, use_container_width=True)
+
+# -------------------------------------------------
+# ASSESSMENTS
+# -------------------------------------------------
 elif view == "Assessments":
 
-    st.title("Recent Risk Assessments")
+    st.subheader("Recent Risk Assessments")
 
-    if "history" not in st.session_state or not st.session_state.history:
-        st.info("No assessments yet.")
-    else:
-        for item in st.session_state.history:
-            color = risk_color(item["risk"])
-            st.markdown(f"""
-            <div style='background:#161B22;padding:1rem;border-radius:6px;
-            margin-bottom:10px;border-left:6px solid {color}'>
-            <strong>{item['time']}</strong><br>
-            Risk: {item['risk']}<br>
-            Score: {item['score']}<br>
-            Governance: {item['decision']}
-            </div>
-            """, unsafe_allow_html=True)
+    if "history" not in st.session_state:
+        st.markdown("""
+        <div class="empty-state">
+            No assessments yet.
+        </div>
+        """, unsafe_allow_html=True)
 
-# ------------------------------------------------
+# -------------------------------------------------
 # DEVELOPER API
-# ------------------------------------------------
+# -------------------------------------------------
 elif view == "Developer API":
 
-    st.title("Nexus Governance API")
-    st.markdown("API-First Architecture for Enterprise Integration")
-
-    st.markdown("### POST /evaluate")
+    st.subheader("API-First Architecture")
 
     st.code("""
 curl -X POST https://api.nexusgovernance.ai/evaluate \\
 -H "Content-Type: application/json" \\
--d '{
-  "document_text": "Contract text here"
-}'
+-d '{"document_text": "Contract text here"}'
 """)
 
-# ------------------------------------------------
+# -------------------------------------------------
 # PRICING
-# ------------------------------------------------
+# -------------------------------------------------
 elif view == "Pricing":
 
-    st.title("Platform Plans")
-
-    st.markdown("""
-    <div style='font-size:1rem;color:#9CA3AF;margin-bottom:1.5rem'>
-    Flexible governance plans for legal teams and enterprises.
-    </div>
-    """, unsafe_allow_html=True)
+    st.subheader("Platform Plans")
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.markdown("""
-        <div style='background:#161B22;padding:1.5rem;border-radius:8px'>
-        <h3>Free</h3>
-        Basic contract analysis<br>
-        Limited audit visibility
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown('<div class="card"><h3>Free</h3>Basic contract analysis</div>', unsafe_allow_html=True)
 
     with col2:
-        st.markdown("""
-        <div style='background:#1E293B;padding:1.5rem;border-radius:8px;
-        border:2px solid #3B82F6;
-        box-shadow:0 0 20px rgba(59,130,246,0.15);'>
-        <h3>Pro</h3>
-        Full XAI trace<br>
-        AI Advisory Layer<br>
-        PDF Risk Report
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown('<div class="card" style="border:2px solid var(--primary);"><h3>Pro</h3>Full XAI trace</div>', unsafe_allow_html=True)
 
     with col3:
-        st.markdown("""
-        <div style='background:#161B22;padding:1.5rem;border-radius:8px'>
-        <h3>Enterprise</h3>
-        API Access<br>
-        Batch Processing<br>
-        Compliance Dashboard
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown('<div class="card"><h3>Enterprise</h3>API Access</div>', unsafe_allow_html=True)
