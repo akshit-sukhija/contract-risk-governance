@@ -229,11 +229,11 @@ def generate_pdf_report(rule_result, governance_action, confidence_vector, docum
 
 view = st.sidebar.radio(
     "Platform Navigation",
-    ["Dashboard", "Assessments", "Developer API", "Pricing"]
+    ["Dashboard", "Ingestion", "Audit Log", "Developer API", "Pricing"]
 )
 
 # ------------------------------------------------
-# GLOBAL EXECUTIVE STYLE
+# GLOBAL STYLE – EXECUTIVE LEGAL-TECH
 # ------------------------------------------------
 
 st.markdown("""
@@ -246,41 +246,40 @@ st.markdown("""
     border-radius: 16px;
     border: 1px solid #1e293b;
     text-align: center;
-    transition: all 0.25s ease;
-}
-
-.kpi-card:hover {
-    border: 1px solid #2563eb;
 }
 
 .kpi-label {
-    font-size: 13px;
+    font-size: 12px;
     letter-spacing: 0.08em;
     color: #94a3b8;
     text-transform: uppercase;
 }
 
 .kpi-value {
-    font-size: 36px;
+    font-size: 34px;
     font-weight: 600;
     margin-top: 8px;
 }
 
-.risk-banner {
-    background: #0f172a;
-    padding: 28px;
-    border-radius: 18px;
+.status-chip {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.chip-green { background: #16a34a; color: white; }
+.chip-red { background: #dc2626; color: white; }
+.chip-amber { background: #f59e0b; color: white; }
+
+.audit-box {
+    background: #0b1220;
+    padding: 18px;
+    border-radius: 14px;
     border: 1px solid #1e293b;
-    margin-bottom: 30px;
-}
-
-.fade-in {
-    animation: fadeIn 0.5s ease-in;
-}
-
-@keyframes fadeIn {
-    from {opacity: 0; transform: translateY(10px);}
-    to {opacity: 1; transform: translateY(0);}
+    font-family: monospace;
+    font-size: 13px;
+    color: #cbd5e1;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -289,8 +288,8 @@ st.markdown("""
 # HEADER
 # ------------------------------------------------
 
-st.title("Nexus Governance OS")
-st.caption("Deterministic AI for Contract Risk Governance")
+st.title("Nexus Architect")
+st.caption("Deterministic AI Governance Engine")
 
 st.markdown("""
 <div style="
@@ -300,26 +299,25 @@ border-left:4px solid #2563EB;
 border-radius:10px;
 margin-bottom:25px;
 font-size:14px;">
-Rule Engine • Governance Layer • SHA-256 Integrity • UUID Traceability
+Rule Engine • Governance Layer • SHA-256 Integrity • UUID Traceability • AMD Ryzen AI Optimized
 </div>
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------
-# DASHBOARD
+# DASHBOARD (HERO COMMAND CENTER)
 # ------------------------------------------------
 
 if view == "Dashboard":
 
-    st.markdown("### Contract Input")
+    st.markdown("## Nexus Command Center")
 
     uploaded_pdf = st.file_uploader("Upload Contract PDF", type=["pdf"])
-    document_text = st.text_area("Or Paste Contract Text", height=220)
-
+    document_text = st.text_area("Or Paste Contract Text", height=200)
     analyze_clicked = st.button("Analyze Contract", use_container_width=True)
 
     if analyze_clicked:
 
-        with st.spinner("Analyzing contract with deterministic rule engine..."):
+        with st.spinner("AMD RYZEN AI NODE – Processing Document..."):
 
             if uploaded_pdf:
                 document_text = extract_pdf_text(uploaded_pdf)
@@ -359,9 +357,6 @@ if view == "Dashboard":
         confidence_vector = data["confidence_vector"]
         document_text = data["document_text"]
 
-        st.markdown("---")
-        st.markdown("## Executive Risk Summary")
-
         risk = rule_result["deterministic_label"]
 
         risk_colors = {
@@ -372,57 +367,49 @@ if view == "Dashboard":
 
         accent = risk_colors.get(risk, "#2563eb")
 
+        # Executive Risk Banner
         st.markdown(f"""
-        <div class="risk-banner fade-in">
-            <div style="font-size:14px; color:#94a3b8; letter-spacing:0.08em;">
-                RISK CLASSIFICATION
+        <div style="background:#0f172a;
+                    padding:26px;
+                    border-radius:16px;
+                    border-left:6px solid {accent};
+                    margin-bottom:30px;">
+            <div style="font-size:40px; font-weight:600; color:{accent};">
+                {risk.replace("_"," ")}
             </div>
-            <div style="font-size:42px; font-weight:600; color:{accent}; margin-top:8px;">
-                {risk.replace("_", " ")}
-            </div>
-            <div style="margin-top:12px; color:#cbd5e1;">
+            <div style="margin-top:8px; color:#cbd5e1;">
                 Governance Action: <strong>{governance_action}</strong><br>
-                Risk Score: {rule_result['eligibility_score']}
+                Risk Score: {rule_result["eligibility_score"]}
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # ---------------- KPI GRID ----------------
-
-        col1, col2, col3 = st.columns(3)
+        # KPI GRID
+        col1, col2, col3, col4 = st.columns(4)
 
         confidence_score = round(
             sum(confidence_vector.values()) / len(confidence_vector) * 100, 1
         )
 
-        with col1:
-            st.markdown(f"""
-            <div class="kpi-card fade-in">
-                <div class="kpi-label">Failed Rules</div>
-                <div class="kpi-value">{len(rule_result["failed_rules"])}</div>
-            </div>
-            """, unsafe_allow_html=True)
+        kpis = [
+            ("Risk Score", rule_result["eligibility_score"]),
+            ("Total Clauses", len(rule_engine.rules)),
+            ("Critical Flags", len(rule_result["failed_rules"])),
+            ("AI Confidence", f"{confidence_score}%")
+        ]
 
-        with col2:
-            st.markdown(f"""
-            <div class="kpi-card fade-in">
-                <div class="kpi-label">Passed Rules</div>
-                <div class="kpi-value">{len(rule_result["passed_rules"])}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with col3:
-            st.markdown(f"""
-            <div class="kpi-card fade-in">
-                <div class="kpi-label">Confidence Index</div>
-                <div class="kpi-value">{confidence_score}%</div>
-            </div>
-            """, unsafe_allow_html=True)
+        for col, (label, value) in zip([col1,col2,col3,col4], kpis):
+            with col:
+                st.markdown(f"""
+                <div class="kpi-card">
+                    <div class="kpi-label">{label}</div>
+                    <div class="kpi-value">{value}</div>
+                </div>
+                """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # ---------------- RISK GAUGE ----------------
-
+        # Risk Gauge
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
             value=rule_result["eligibility_score"],
@@ -431,13 +418,10 @@ if view == "Dashboard":
                 "bar": {"color": accent},
             },
         ))
-
-        fig.update_layout(height=280, margin=dict(t=40, b=20))
-
+        fig.update_layout(height=260)
         st.plotly_chart(fig, use_container_width=True)
 
-        # ---------------- DOWNLOAD ----------------
-
+        # PDF Download
         try:
             pdf_buffer = generate_pdf_report(
                 rule_result,
@@ -447,28 +431,91 @@ if view == "Dashboard":
             )
 
             st.download_button(
-                label="⬇ Download Risk Audit Report (PDF)",
+                label="Download Risk Audit Report (PDF)",
                 data=pdf_buffer,
                 file_name="Nexus_Risk_Audit_Report.pdf",
                 mime="application/pdf",
                 use_container_width=True
             )
-
-        except Exception as e:
+        except:
             st.error("PDF generation failed.")
 
 # ------------------------------------------------
-# OTHER VIEWS
+# GOVERNANCE LOGIC VIEW (CLAUSE BREAKDOWN)
 # ------------------------------------------------
 
-elif view == "Assessments":
-    st.info("Assessment tracking module coming soon.")
+elif view == "Ingestion":
+
+    st.markdown("## Governance Logic – Clause Breakdown")
+
+    if "analysis" not in st.session_state:
+        st.info("Analyze a document first from Dashboard.")
+    else:
+        rule_result = st.session_state["analysis"]["rule_result"]
+
+        table_rows = []
+
+        for rule in rule_engine.rules:
+            triggered = rule.id in rule_result["failed_rules"]
+
+            if triggered:
+                status = "<span class='status-chip chip-red'>Flagged</span>"
+            else:
+                status = "<span class='status-chip chip-green'>Compliant</span>"
+
+            table_rows.append([rule.id, status, rule.weight])
+
+        for row in table_rows:
+            st.markdown(f"""
+            <div style="background:#0f172a;
+                        padding:14px;
+                        border-radius:10px;
+                        margin-bottom:8px;
+                        border:1px solid #1e293b;">
+                <strong>{row[0]}</strong> &nbsp;&nbsp; {row[1]} &nbsp;&nbsp; Weight: {row[2]}
+            </div>
+            """, unsafe_allow_html=True)
+
+# ------------------------------------------------
+# XAI AUDIT LOG
+# ------------------------------------------------
+
+elif view == "Audit Log":
+
+    st.markdown("## Deterministic Decision Trace")
+
+    if "analysis" not in st.session_state:
+        st.info("Run an analysis first.")
+    else:
+        rule_result = st.session_state["analysis"]["rule_result"]
+
+        st.markdown("<div class='audit-box'>", unsafe_allow_html=True)
+
+        st.write(f"[{datetime.utcnow()}] Rule Engine Initialized")
+        st.write(f"[{datetime.utcnow()}] Total Rules Loaded: {len(rule_engine.rules)}")
+        st.write(f"[{datetime.utcnow()}] Failed Rules: {rule_result['failed_rules']}")
+        st.write(f"[{datetime.utcnow()}] Deterministic Label: {rule_result['deterministic_label']}")
+        st.write(f"[{datetime.utcnow()}] Governance Action Applied")
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+# ------------------------------------------------
+# DEVELOPER API
+# ------------------------------------------------
 
 elif view == "Developer API":
     st.code("""
 curl -X POST https://api.nexusgovernance.ai/evaluate \\
 -H "Content-Type: application/json" \\
 -d '{"document_text": "Contract text here"}'
+""")
+
+# ------------------------------------------------
+# PRICING
+# ------------------------------------------------
+
+elif view == "Pricing":
+    st.info("Enterprise licensing available upon request.")
 """)
 
 elif view == "Pricing":
