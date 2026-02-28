@@ -40,7 +40,7 @@ Our core philosophy is **"Decision-First, Narrative-Second."** Hard-coded determ
 
 
 *  **Inference Engine**: **ONNX Runtime + DirectML** for hardware acceleration.
-*  
+
 ---
 
 ## ⚡ AMD Ryzen™ AI Synergy
@@ -97,5 +97,3 @@ The Nexus Architect engine is vertically agnostic. We plan to scale this logic i
 This project is licensed under the **MIT License**. It is open-source and free to use for further innovation in the field of Explainable AI.
 
 ---
-
-**I've structured this to look very professional for the judges. Would you like me to also draft a short 50-word "Impact Statement" for your Hack2skill submission form?**
