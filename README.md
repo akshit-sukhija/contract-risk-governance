@@ -27,27 +27,20 @@ Our core philosophy is **"Decision-First, Narrative-Second."** Hard-coded determ
 
 ## 🛠️ Technology Stack
 
-* 
-**UI/Frontend**: Streamlit (Transparency Dashboard & Risk Visualizations).
+*  **UI/Frontend**: Streamlit (Transparency Dashboard & Risk Visualizations).
 
 
-* 
-**Backend Orchestration**: FastAPI (High-concurrency document processing).
+*  **Backend Orchestration**: FastAPI (High-concurrency document processing).
 
 
-* 
-**Deterministic Logic**: Custom Python-based Rule Engine utilizing YAML configurations.
+*  **Deterministic Logic**: Custom Python-based Rule Engine utilizing YAML configurations.
 
 
-* 
-**AI Layer**: FAISS (Local Vector Store) & LLM Explanation Service.
+*  **AI Layer**: FAISS (Local Vector Store) & LLM Explanation Service.
 
 
-* 
-**Inference Engine**: **ONNX Runtime + DirectML** for hardware acceleration.
-
-
-
+*  **Inference Engine**: **ONNX Runtime + DirectML** for hardware acceleration.
+*  
 ---
 
 ## ⚡ AMD Ryzen™ AI Synergy
@@ -64,7 +57,7 @@ Nexus Governance OS is purpose-built to leverage **AMD hardware** for privacy an
 
 The project follows a modular five-layer architecture designed for security and scalability.
 
-*Refer to the high-resolution architecture diagram (`image_57b674.jpg`) in the repository for a detailed component breakdown.*
+*Refer to the high-resolution architecture diagram (`NPU-Accelerated Deterministic AI Governance Architecture.png`) in the repository for a detailed component breakdown.*
 
 > **📖 Technical Documentation**: Full system architecture and NPU optimization guides are included within this repository for developer review.
 
