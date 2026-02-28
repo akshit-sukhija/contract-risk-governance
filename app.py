@@ -144,6 +144,7 @@ def generate_pdf_report(rule_result, governance_action, confidence_vector, docum
             ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
             ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("ROWBACKGROUNDS", (0,1), (-1,-1), [colors.whitesmoke, colors.lightgrey]),
         ]))
 
         elements.append(table)
@@ -156,7 +157,8 @@ def generate_pdf_report(rule_result, governance_action, confidence_vector, docum
         ]
 
         if any(heat_values):
-            fig, ax = plt.subplots(figsize=(6, 1))
+            fig, ax = plt.subplots(figsize=(8, 2))
+            sns.set(font_scale=0.7)
             ax.imshow([heat_values], cmap="Reds")
             ax.set_xticks(range(len(rule_engine.rules)))
             ax.set_xticklabels([r.id for r in rule_engine.rules], rotation=45)
@@ -229,8 +231,83 @@ view = st.sidebar.radio(
     ["Dashboard", "Assessments", "Developer API", "Pricing"]
 )
 
+# ------------------------------------------------
+# GLOBAL STYLE (Executive Minimal System)
+# ------------------------------------------------
+
+st.markdown("""
+<style>
+.block-container {
+    padding-top: 1.2rem;
+    padding-bottom: 2rem;
+    max-width: 1100px;
+}
+
+h1, h2, h3 {
+    letter-spacing: -0.5px;
+}
+
+.executive-strip {
+    padding: 10px 16px;
+    background: #0f172a;
+    border-left: 4px solid #2563EB;
+    border-radius: 8px;
+    margin-bottom: 28px;
+    font-size: 14px;
+}
+
+.risk-card {
+    padding: 28px;
+    border-radius: 18px;
+    margin-top: 20px;
+    color: white;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.metric-card {
+    background: #111827;
+    padding: 22px;
+    border-radius: 16px;
+    text-align: center;
+    border: 1px solid #1f2937;
+    animation: slideUp 0.4s ease-in-out;
+}
+
+.metric-card h4 {
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #9ca3af;
+}
+
+.metric-card h2 {
+    margin: 0;
+    font-size: 28px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ------------------------------------------------
+# HEADER
+# ------------------------------------------------
+
 st.title("Nexus Governance OS")
 st.caption("Deterministic AI for Contract Risk Governance")
+
+st.markdown("""
+<div class="executive-strip">
+Rule Engine • Governance Layer • SHA-256 Integrity • UUID Traceability
+</div>
+""", unsafe_allow_html=True)
 
 # ------------------------------------------------
 # DASHBOARD
@@ -238,38 +315,135 @@ st.caption("Deterministic AI for Contract Risk Governance")
 
 if view == "Dashboard":
 
+    # --------------------------
+    # INPUT PANEL
+    # --------------------------
+
+    st.markdown("### Contract Input")
+
     uploaded_pdf = st.file_uploader("Upload Contract PDF", type=["pdf"])
-    document_text = st.text_area("Or Paste Contract Text", height=200)
+    document_text = st.text_area("Or Paste Contract Text", height=220)
 
-    if st.button("Analyze Contract", use_container_width=True):
+    analyze_clicked = st.button("Analyze Contract", use_container_width=True)
 
-        if uploaded_pdf:
-            document_text = extract_pdf_text(uploaded_pdf)
+    if analyze_clicked:
 
-        if not document_text.strip():
-            st.warning("Contract text required.")
-            st.stop()
+        with st.spinner("Analyzing contract under deterministic rule engine..."):
 
-        rule_result = rule_engine.evaluate(document_text)
+            if uploaded_pdf:
+                document_text = extract_pdf_text(uploaded_pdf)
 
-        confidence_vector = calculate_confidence_vector(
-            passed_rules=rule_result["passed_rules"],
-            failed_rules=rule_result["failed_rules"],
-            total_rules=len(rule_engine.rules),
-            retrieval_similarity=1.0,
-            data_completeness=1.0,
-        )
+            if not document_text.strip():
+                st.warning("Contract text required.")
+                st.stop()
 
-        governance_action = apply_governance_layer(
-            deterministic_label=rule_result["deterministic_label"],
-            confidence_vector=confidence_vector,
-            crag_blocked=False,
-        )
+            rule_result = rule_engine.evaluate(document_text)
 
-        st.subheader("Executive Summary")
-        st.write("Risk Level:", rule_result["deterministic_label"])
-        st.write("Governance Action:", governance_action)
-        st.write("Risk Score:", rule_result["eligibility_score"])
+            confidence_vector = calculate_confidence_vector(
+                passed_rules=rule_result["passed_rules"],
+                failed_rules=rule_result["failed_rules"],
+                total_rules=len(rule_engine.rules),
+                retrieval_similarity=1.0,
+                data_completeness=1.0,
+            )
+
+            governance_action = apply_governance_layer(
+                deterministic_label=rule_result["deterministic_label"],
+                confidence_vector=confidence_vector,
+                crag_blocked=False,
+            )
+
+            st.session_state["analysis"] = {
+                "rule_result": rule_result,
+                "governance_action": governance_action,
+                "confidence_vector": confidence_vector,
+                "document_text": document_text
+            }
+
+    # --------------------------
+    # RESULTS PANEL
+    # --------------------------
+
+    if "analysis" in st.session_state:
+
+        data = st.session_state["analysis"]
+        rule_result = data["rule_result"]
+        governance_action = data["governance_action"]
+        confidence_vector = data["confidence_vector"]
+        document_text = data["document_text"]
+
+        st.markdown("---")
+        st.markdown("## Executive Risk Summary")
+
+        risk = rule_result["deterministic_label"]
+
+        color_map = {
+            "LOW_RISK": "#14532d",
+            "MEDIUM_RISK": "#7c2d12",
+            "HIGH_RISK": "#7f1d1d"
+        }
+
+        st.markdown(f"""
+        <div class="risk-card" style="background:{color_map.get(risk, "#1f2937")};">
+            <h2 style="margin:0;">{risk.replace("_", " ")}</h2>
+            <p style="margin:8px 0 0 0;">Governance Action: <strong>{governance_action}</strong></p>
+            <p style="margin:4px 0 0 0;">Risk Score: {rule_result['eligibility_score']}</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # --------------------------
+        # METRICS GRID
+        # --------------------------
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.markdown(f"""
+            <div class="metric-card">
+                <h4>Failed Rules</h4>
+                <h2>{len(rule_result["failed_rules"])}</h2>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col2:
+            st.markdown(f"""
+            <div class="metric-card">
+                <h4>Passed Rules</h4>
+                <h2>{len(rule_result["passed_rules"])}</h2>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col3:
+            confidence_score = round(
+                sum(confidence_vector.values()) / len(confidence_vector), 2
+            )
+
+            st.markdown(f"""
+            <div class="metric-card">
+                <h4>Confidence Index</h4>
+                <h2>{confidence_score}</h2>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # --------------------------
+        # RISK GAUGE
+        # --------------------------
+
+        fig = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=rule_result["eligibility_score"],
+            gauge={
+                "axis": {"range": [0, 100]},
+                "bar": {"color": "#ef4444"},
+            },
+        ))
+
+        fig.update_layout(height=260)
+        st.plotly_chart(fig, use_container_width=True)
+
+        # --------------------------
+        # DOWNLOAD BUTTON
+        # --------------------------
 
         pdf_buffer = generate_pdf_report(
             rule_result,
@@ -278,19 +452,22 @@ if view == "Dashboard":
             document_text
         )
 
-        if pdf_buffer:
-            st.download_button(
-                "Download Risk Report (PDF)",
-                pdf_buffer,
-                "Nexus_Risk_Audit_Report.pdf",
-                "application/pdf",
-                use_container_width=True
-            )
-        else:
-            st.error("PDF generation failed.")
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        st.download_button(
+            label="⬇ Download Risk Audit Report (PDF)",
+            data=pdf_buffer,
+            file_name="Nexus_Risk_Audit_Report.pdf",
+            mime="application/pdf",
+            use_container_width=True
+        )
+
+# ------------------------------------------------
+# OTHER PAGES
+# ------------------------------------------------
 
 elif view == "Assessments":
-    st.info("No assessments yet.")
+    st.info("Assessment tracking module coming soon.")
 
 elif view == "Developer API":
     st.code("""
@@ -300,4 +477,4 @@ curl -X POST https://api.nexusgovernance.ai/evaluate \\
 """)
 
 elif view == "Pricing":
-    st.info("Pricing plans coming soon.")
+    st.info("Enterprise licensing available upon request.")
