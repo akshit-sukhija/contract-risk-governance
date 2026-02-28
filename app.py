@@ -504,11 +504,12 @@ elif view == "Audit Log":
 # ------------------------------------------------
 
 elif view == "Developer API":
-    st.code("""
+    api_example = """
 curl -X POST https://api.nexusgovernance.ai/evaluate \\
 -H "Content-Type: application/json" \\
 -d '{"document_text": "Contract text here"}'
-""")
+"""
+    st.code(api_example)
 
 # ------------------------------------------------
 # PRICING
