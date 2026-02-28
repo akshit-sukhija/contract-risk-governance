@@ -34,7 +34,6 @@ st.markdown("""
 :root {
     --primary: #0D47A1;
     --primary-light: #1565C0;
-    --accent: #00BCD4;
     --success: #4CAF50;
     --warning: #FF9800;
     --error: #F44336;
@@ -43,7 +42,6 @@ st.markdown("""
     --border: #2D3748;
     --text-primary: #FFFFFF;
     --text-secondary: #A0AEC0;
-    --text-muted: #718096;
 }
 
 html, body, [class*="css"] {
@@ -54,16 +52,31 @@ body { background: var(--bg-dark); color: var(--text-primary); }
 
 .block-container { padding: 3rem 4rem; max-width: 1200px; }
 
-.hero { padding-bottom: 2rem; margin-bottom: 3rem; border-bottom: 2px solid var(--primary); }
+.hero {
+    padding-bottom: 2rem;
+    margin-bottom: 3rem;
+    border-bottom: 2px solid var(--primary);
+}
 .hero h1 { font-size: 2.6rem; font-weight: 700; margin-bottom: 0.5rem; }
 .hero p { color: var(--text-secondary); }
 
-.module { font-size: 0.8rem; letter-spacing: 1.5px; text-transform: uppercase;
-          margin-bottom: 1rem; color: var(--text-muted); font-weight: 600; }
+.module {
+    font-size: 0.8rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
 
-.card { background: var(--bg-card); border: 1px solid var(--border);
-        padding: 2rem; border-radius: 12px; margin-bottom: 2rem;
-        transition: all 0.25s ease; }
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    transition: 0.2s ease;
+}
 
 .card:hover { border-color: var(--primary); }
 
@@ -74,8 +87,9 @@ body { background: var(--bg-dark); color: var(--text-primary); }
     padding: 12px 24px;
     border-radius: 6px;
     border: none;
-    transition: all 0.2s ease;
+    transition: 0.2s ease;
 }
+
 .stButton > button:hover {
     background: var(--primary-light);
     transform: translateY(-1px);
@@ -87,37 +101,17 @@ body { background: var(--bg-dark); color: var(--text-primary); }
     margin-top: 2rem;
 }
 
-.kpi-strip { display: flex; gap: 1.5rem; margin-top: 2rem; margin-bottom: 2rem; }
-
 .kpi-card {
-    flex: 1;
     background: var(--bg-card);
     border: 1px solid var(--border);
     padding: 1.5rem;
     border-radius: 8px;
+    text-align: center;
 }
 
-.kpi-value { font-size: 2rem; font-weight: 700; }
-
-.pricing-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    padding: 2rem;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    height: 100%;
-}
-
-.pricing-card:hover {
-    border-color: var(--primary);
-    box-shadow: 0 6px 30px rgba(13,71,161,0.15);
-    transform: translateY(-4px);
-}
-
-.pricing-selected {
-    border: 2px solid var(--primary);
-    box-shadow: 0 6px 40px rgba(13,71,161,0.25);
+.kpi-value {
+    font-size: 2rem;
+    font-weight: 700;
 }
 
 .empty-state {
@@ -151,15 +145,23 @@ def animate_metric(label, value):
     placeholder = st.empty()
     step = max(1, value // 20 or 1)
     for i in range(0, value + 1, step):
-        placeholder.markdown(f"<div class='kpi-card'><div>{label}</div><div class='kpi-value'>{i}</div></div>", unsafe_allow_html=True)
+        placeholder.markdown(
+            f"<div class='kpi-card'><div>{label}</div><div class='kpi-value'>{i}</div></div>",
+            unsafe_allow_html=True
+        )
         time.sleep(0.01)
-    placeholder.markdown(f"<div class='kpi-card'><div>{label}</div><div class='kpi-value'>{value}</div></div>", unsafe_allow_html=True)
+    placeholder.markdown(
+        f"<div class='kpi-card'><div>{label}</div><div class='kpi-value'>{value}</div></div>",
+        unsafe_allow_html=True
+    )
 
 # -------------------------------------------------
 # SIDEBAR
 # -------------------------------------------------
-view = st.sidebar.radio("Platform Navigation",
-                        ["Dashboard", "Assessments", "Developer API", "Pricing"])
+view = st.sidebar.radio(
+    "Platform Navigation",
+    ["Dashboard", "Assessments", "Developer API", "Pricing"]
+)
 
 # -------------------------------------------------
 # HERO
@@ -213,31 +215,45 @@ if view == "Dashboard":
         """, unsafe_allow_html=True)
 
         col1, col2, col3 = st.columns(3)
-        with col1: animate_metric("Risk Exposure Index", rule_result["eligibility_score"])
-        with col2: animate_metric("Failed Rules", len(rule_result["failed_rules"]))
-        with col3: animate_metric("Passed Rules", len(rule_result["passed_rules"]))
 
+        with col1:
+            animate_metric("Risk Exposure Index", rule_result["eligibility_score"])
+        with col2:
+            animate_metric("Failed Rules", len(rule_result["failed_rules"]))
+        with col3:
+            animate_metric("Passed Rules", len(rule_result["passed_rules"]))
+
+        # Risk Gauge
         fig_gauge = go.Figure(go.Pie(
-            values=[rule_result["eligibility_score"], 100-rule_result["eligibility_score"]],
-            hole=0.7))
+            values=[rule_result["eligibility_score"], 100 - rule_result["eligibility_score"]],
+            hole=0.7
+        ))
         fig_gauge.update_layout(showlegend=False, paper_bgcolor="#0F1419",
-                                font=dict(color="white"), title="Risk Severity Gauge")
+                                font=dict(color="white"), title="Risk Severity")
         st.plotly_chart(fig_gauge, use_container_width=True)
 
-        fig_pie = px.pie(names=["Passed","Failed"],
-                         values=[len(rule_result["passed_rules"]),
-                                 len(rule_result["failed_rules"])],
-                         hole=0.5)
+        # Pie
+        fig_pie = px.pie(
+            names=["Passed", "Failed"],
+            values=[len(rule_result["passed_rules"]), len(rule_result["failed_rules"])],
+            hole=0.5
+        )
         fig_pie.update_layout(paper_bgcolor="#0F1419", font_color="white")
         st.plotly_chart(fig_pie, use_container_width=True)
 
-        categories = list(confidence_vector.keys())
-        values = list(confidence_vector.values())
+        # Radar
         fig_radar = go.Figure()
-        fig_radar.add_trace(go.Scatterpolar(r=values, theta=categories, fill='toself'))
-        fig_radar.update_layout(polar=dict(radialaxis=dict(range=[0,1], visible=True)),
-                                showlegend=False, paper_bgcolor="#0F1419",
-                                font=dict(color="white"))
+        fig_radar.add_trace(go.Scatterpolar(
+            r=list(confidence_vector.values()),
+            theta=list(confidence_vector.keys()),
+            fill='toself'
+        ))
+        fig_radar.update_layout(
+            polar=dict(radialaxis=dict(range=[0, 1], visible=True)),
+            showlegend=False,
+            paper_bgcolor="#0F1419",
+            font=dict(color="white")
+        )
         st.plotly_chart(fig_radar, use_container_width=True)
 
 # -------------------------------------------------
@@ -245,34 +261,46 @@ if view == "Dashboard":
 # -------------------------------------------------
 elif view == "Pricing":
 
+    st.subheader("Platform Plans")
+
     if "selected_plan" not in st.session_state:
         st.session_state.selected_plan = "Pro"
 
-    def select_plan(plan):
-        st.session_state.selected_plan = plan
-
     col1, col2, col3 = st.columns(3)
 
-    for col, plan, desc in [
-        (col1,"Free","Basic contract analysis<br>Limited audit visibility"),
-        (col2,"Pro","Full XAI trace<br>AI Advisory Layer<br>PDF Risk Reports"),
-        (col3,"Enterprise","API Access<br>Batch Processing<br>Compliance Dashboard")
-    ]:
+    def render_plan(col, plan, desc):
         with col:
-            selected = "pricing-selected" if st.session_state.selected_plan==plan else ""
-            if st.button(" ", key=f"{plan}_card", use_container_width=True):
-                select_plan(plan)
+            selected = st.session_state.selected_plan == plan
+            border = "2px solid #0D47A1" if selected else "1px solid #2D3748"
+            shadow = "0 6px 30px rgba(13,71,161,0.25)" if selected else "none"
+
             st.markdown(f"""
-            <div class="pricing-card {selected}">
+            <div style="background:#1A202C;
+                        border:{border};
+                        box-shadow:{shadow};
+                        padding:2rem;
+                        border-radius:12px;
+                        margin-bottom:1rem;">
                 <h3>{plan}</h3>
-                {desc}<br><br>
-                <strong>{'Most Popular' if plan=='Pro' else 'Select Plan →'}</strong>
+                {desc}
             </div>
             """, unsafe_allow_html=True)
 
+            if st.button(f"Select {plan}", key=f"btn_{plan}", use_container_width=True):
+                st.session_state.selected_plan = plan
+
+    render_plan(col1, "Free",
+                "Basic contract analysis<br>Limited audit visibility")
+
+    render_plan(col2, "Pro",
+                "Full XAI trace<br>AI Advisory Layer<br>PDF Risk Reports<br><strong>Most Popular</strong>")
+
+    render_plan(col3, "Enterprise",
+                "API Access<br>Batch Processing<br>Compliance Dashboard")
+
     st.markdown(f"""
-    <div style="margin-top:2rem; padding:1rem; background:#1A202C;
-    border-radius:8px; border-left:4px solid var(--primary);">
+    <div style="margin-top:2rem;padding:1rem;background:#1A202C;
+    border-left:4px solid #0D47A1;border-radius:8px;">
         <strong>Selected Plan:</strong> {st.session_state.selected_plan}
     </div>
     """, unsafe_allow_html=True)
@@ -280,14 +308,14 @@ elif view == "Pricing":
     st.markdown("### Plan Comparison")
 
     st.table({
-        "Feature": ["Risk Engine","XAI Trace","Governance Override","PDF Reports","API Access"],
-        "Free":["✔","✖","✖","✖","✖"],
-        "Pro":["✔","✔","✔","✔","✖"],
-        "Enterprise":["✔","✔","✔","✔","✔"]
+        "Feature": ["Risk Engine", "XAI Trace", "Governance Override", "PDF Reports", "API Access"],
+        "Free": ["✔", "✖", "✖", "✖", "✖"],
+        "Pro": ["✔", "✔", "✔", "✔", "✖"],
+        "Enterprise": ["✔", "✔", "✔", "✔", "✔"]
     })
 
     st.markdown("""
-    <div style="margin-top:2rem; font-size:0.9rem; color:var(--text-secondary);">
+    <div style="margin-top:2rem;font-size:0.9rem;color:#A0AEC0;">
     Demo Mode: Stripe integration placeholder.
     </div>
     """, unsafe_allow_html=True)
