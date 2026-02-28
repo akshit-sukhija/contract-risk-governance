@@ -1,14 +1,16 @@
 import streamlit as st
 import re
 import hashlib
+import uuid
+import json
 from pathlib import Path
 from io import BytesIO
 from datetime import datetime
 
 import PyPDF2
-import plotly.graph_objects as go
-import plotly.express as px
-import time
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
 
 from reportlab.platypus import (
     SimpleDocTemplate,
@@ -16,11 +18,14 @@ from reportlab.platypus import (
     Spacer,
     Table,
     TableStyle,
+    Image,
     PageBreak
 )
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+from reportlab.graphics.barcode import qr
 
 from explainable_ai.core.engine.rule_engine import RuleEngine
 from explainable_ai.core.governance.governance import apply_governance_layer
@@ -51,7 +56,7 @@ def extract_pdf_text(uploaded_file):
         text += page.extract_text() or ""
     return text
 
-def generate_hash(text: str):
+def generate_hash(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 def highlight_text(text, failed_rules):
@@ -79,19 +84,27 @@ def generate_pdf_report(rule_result, governance_action, confidence_vector, docum
 
     timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
     document_hash = generate_hash(document_text)
+    document_id = str(uuid.uuid4())
+
+    verification_payload = json.dumps({
+        "product": "Nexus Governance OS",
+        "document_id": document_id,
+        "hash": document_hash,
+        "timestamp": timestamp,
+        "version": "prototype-v1"
+    }, separators=(",", ":"))
 
     # HEADER
     elements.append(Paragraph("Nexus Governance OS - Risk Audit Report", styles["Heading1"]))
     elements.append(Spacer(1, 12))
-
+    elements.append(Paragraph(f"Document ID: {document_id}", styles["Normal"]))
     elements.append(Paragraph(f"Generated: {timestamp}", styles["Normal"]))
-    elements.append(Paragraph(f"Document Hash (SHA-256): {document_hash}", styles["Normal"]))
+    elements.append(Paragraph(f"SHA-256 Hash: {document_hash}", styles["Normal"]))
     elements.append(Spacer(1, 16))
 
     # EXECUTIVE SUMMARY
     elements.append(Paragraph("Executive Summary", styles["Heading2"]))
     elements.append(Spacer(1, 8))
-
     elements.append(Paragraph(f"Risk Level: {rule_result['deterministic_label']}", styles["Normal"]))
     elements.append(Paragraph(f"Governance Action: {governance_action}", styles["Normal"]))
     elements.append(Paragraph(f"Risk Score: {rule_result['eligibility_score']}", styles["Normal"]))
@@ -100,8 +113,6 @@ def generate_pdf_report(rule_result, governance_action, confidence_vector, docum
     # GOVERNANCE AUDIT TRAIL
     elements.append(Paragraph("Governance Audit Trail", styles["Heading2"]))
     elements.append(Spacer(1, 8))
-
-    elements.append(Paragraph(f"Deterministic Label: {rule_result['deterministic_label']}", styles["Normal"]))
     elements.append(Paragraph(f"Confidence Vector: {confidence_vector}", styles["Normal"]))
     elements.append(Paragraph("CRAG Blocked: False", styles["Normal"]))
     elements.append(Spacer(1, 16))
@@ -111,7 +122,6 @@ def generate_pdf_report(rule_result, governance_action, confidence_vector, docum
     elements.append(Spacer(1, 8))
 
     table_data = [["Clause ID", "Triggered", "Weight"]]
-
     for rule in rule_engine.rules:
         triggered = "Yes" if rule.id in rule_result["failed_rules"] else "No"
         weight = rule.weight if triggered == "Yes" else "-"
@@ -127,14 +137,66 @@ def generate_pdf_report(rule_result, governance_action, confidence_vector, docum
     elements.append(table)
     elements.append(Spacer(1, 20))
 
-    # HIGHLIGHTED CLAUSES EXPORT
+    # HEATMAP
+    heat_values = [
+        rule.weight if rule.id in rule_result["failed_rules"] else 0
+        for rule in rule_engine.rules
+    ]
+
+    if any(heat_values):
+        fig, ax = plt.subplots(figsize=(6, 1))
+        sns.heatmap(
+            np.array([heat_values]),
+            annot=True,
+            cmap="Reds",
+            cbar=False,
+            ax=ax
+        )
+        ax.set_xticklabels([r.id for r in rule_engine.rules], rotation=45)
+        ax.set_yticklabels(["Risk Intensity"])
+        plt.tight_layout()
+
+        img_buffer = BytesIO()
+        fig.savefig(img_buffer, format="png")
+        plt.close(fig)
+        img_buffer.seek(0)
+
+        elements.append(Paragraph("Risk Heatmap Overview", styles["Heading2"]))
+        elements.append(Spacer(1, 8))
+        elements.append(Image(img_buffer, width=6 * inch, height=2 * inch))
+        elements.append(Spacer(1, 20))
+
+    # DIGITAL SIGNATURE
+    elements.append(Paragraph("Digital Signature Validation", styles["Heading2"]))
+    elements.append(Spacer(1, 20))
+    elements.append(Paragraph(
+        "This document has been digitally signed under internal governance controls.",
+        styles["Normal"]
+    ))
+    elements.append(Spacer(1, 40))
+    elements.append(Paragraph("______________________________", styles["Normal"]))
+    elements.append(Paragraph("Authorized Compliance Officer", styles["Normal"]))
+
+    # HIGHLIGHTED EXPORT
     elements.append(PageBreak())
     elements.append(Paragraph("Highlighted Clause Export", styles["Heading1"]))
     elements.append(Spacer(1, 12))
-
     highlighted_version = highlight_text(document_text, rule_result["failed_rules"])
-
     elements.append(Paragraph(highlighted_version[:4000], styles["Normal"]))
+
+    # VERIFICATION PAGE
+    elements.append(PageBreak())
+    elements.append(Paragraph("Tamper Detection & Verification", styles["Heading1"]))
+    elements.append(Spacer(1, 20))
+    elements.append(Paragraph("To verify authenticity:", styles["Normal"]))
+    elements.append(Paragraph("1. Recalculate SHA-256 of original contract.", styles["Normal"]))
+    elements.append(Paragraph(f"2. Confirm match with: {document_hash}", styles["Normal"]))
+    elements.append(Paragraph(f"3. Confirm Document ID: {document_id}", styles["Normal"]))
+    elements.append(Spacer(1, 20))
+
+    elements.append(Paragraph("Verification QR Code", styles["Heading2"]))
+    elements.append(Spacer(1, 12))
+    elements.append(qr.QrCodeWidget(verification_payload))
 
     doc.build(elements)
     buffer.seek(0)
@@ -148,10 +210,6 @@ view = st.sidebar.radio(
     "Platform Navigation",
     ["Dashboard", "Assessments", "Developer API", "Pricing"]
 )
-
-# ------------------------------------------------
-# HERO
-# ------------------------------------------------
 
 st.title("Nexus Governance OS")
 st.caption("Deterministic AI for Contract Risk Governance")
@@ -226,10 +284,6 @@ if view == "Dashboard":
             mime="application/pdf",
             use_container_width=True
         )
-
-# ------------------------------------------------
-# OTHER PAGES
-# ------------------------------------------------
 
 elif view == "Assessments":
     st.info("No assessments yet.")
