@@ -29,71 +29,43 @@ rule_engine = RuleEngine(POLICY_PATH)
 # -------------------------------------------------
 st.markdown("""
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 :root {
     --primary: #0D47A1;
     --primary-light: #1565C0;
     --accent: #00BCD4;
-
     --success: #4CAF50;
     --warning: #FF9800;
     --error: #F44336;
-
     --bg-dark: #0F1419;
     --bg-card: #1A202C;
     --border: #2D3748;
-
     --text-primary: #FFFFFF;
     --text-secondary: #A0AEC0;
     --text-muted: #718096;
 }
 
-body {
-    background: var(--bg-dark);
-    color: var(--text-primary);
+html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
 }
 
-.block-container {
-    padding: 3rem 4rem;
-    max-width: 1200px;
-}
+body { background: var(--bg-dark); color: var(--text-primary); }
 
-.hero {
-    padding-bottom: 2rem;
-    margin-bottom: 3rem;
-    border-bottom: 2px solid var(--primary);
-}
+.block-container { padding: 3rem 4rem; max-width: 1200px; }
 
-.hero h1 {
-    font-size: 2.6rem;
-    font-weight: 700;
-}
+.hero { padding-bottom: 2rem; margin-bottom: 3rem; border-bottom: 2px solid var(--primary); }
+.hero h1 { font-size: 2.6rem; font-weight: 700; margin-bottom: 0.5rem; }
+.hero p { color: var(--text-secondary); }
 
-.hero p {
-    color: var(--text-secondary);
-}
+.module { font-size: 0.8rem; letter-spacing: 1.5px; text-transform: uppercase;
+          margin-bottom: 1rem; color: var(--text-muted); font-weight: 600; }
 
-.module {
-    font-size: 0.8rem;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    margin-bottom: 1rem;
-    color: var(--text-muted);
-    font-weight: 600;
-}
+.card { background: var(--bg-card); border: 1px solid var(--border);
+        padding: 2rem; border-radius: 12px; margin-bottom: 2rem;
+        transition: all 0.25s ease; }
 
-.card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    padding: 2rem;
-    border-radius: 10px;
-    margin-bottom: 2rem;
-    transition: 0.2s ease;
-}
-
-.card:hover {
-    border-color: var(--primary);
-}
+.card:hover { border-color: var(--primary); }
 
 .stButton > button {
     background: var(--primary);
@@ -102,9 +74,8 @@ body {
     padding: 12px 24px;
     border-radius: 6px;
     border: none;
-    transition: 0.2s ease;
+    transition: all 0.2s ease;
 }
-
 .stButton > button:hover {
     background: var(--primary-light);
     transform: translateY(-1px);
@@ -112,16 +83,11 @@ body {
 
 .exec-banner {
     padding: 1.8rem;
-    border-radius: 8px;
+    border-radius: 10px;
     margin-top: 2rem;
 }
 
-.kpi-strip {
-    display: flex;
-    gap: 1.5rem;
-    margin-top: 2rem;
-    margin-bottom: 2rem;
-}
+.kpi-strip { display: flex; gap: 1.5rem; margin-top: 2rem; margin-bottom: 2rem; }
 
 .kpi-card {
     flex: 1;
@@ -131,9 +97,27 @@ body {
     border-radius: 8px;
 }
 
-.kpi-value {
-    font-size: 2rem;
-    font-weight: 700;
+.kpi-value { font-size: 2rem; font-weight: 700; }
+
+.pricing-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 2rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    height: 100%;
+}
+
+.pricing-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 6px 30px rgba(13,71,161,0.15);
+    transform: translateY(-4px);
+}
+
+.pricing-selected {
+    border: 2px solid var(--primary);
+    box-shadow: 0 6px 40px rgba(13,71,161,0.25);
 }
 
 .empty-state {
@@ -165,7 +149,8 @@ def risk_color(level):
 
 def animate_metric(label, value):
     placeholder = st.empty()
-    for i in range(0, value + 1, max(1, value // 20 or 1)):
+    step = max(1, value // 20 or 1)
+    for i in range(0, value + 1, step):
         placeholder.markdown(f"<div class='kpi-card'><div>{label}</div><div class='kpi-value'>{i}</div></div>", unsafe_allow_html=True)
         time.sleep(0.01)
     placeholder.markdown(f"<div class='kpi-card'><div>{label}</div><div class='kpi-value'>{value}</div></div>", unsafe_allow_html=True)
@@ -194,10 +179,8 @@ if view == "Dashboard":
     st.markdown('<div class="module">Module 1 — Contract Ingestion</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
-
     uploaded_pdf = st.file_uploader("Upload Contract PDF", type=["pdf"])
     document_text = st.text_area("Or Paste Contract Text", height=200)
-
     st.markdown('</div>', unsafe_allow_html=True)
 
     if document_text.strip() or uploaded_pdf:
@@ -221,7 +204,6 @@ if view == "Dashboard":
             crag_blocked=False,
         )
 
-        # Executive Banner
         st.markdown(f"""
         <div class="exec-banner" style="border-left:6px solid {risk_color(rule_result['deterministic_label'])}; background:#1A202C;">
             <h3>Executive Risk Summary</h3>
@@ -230,101 +212,98 @@ if view == "Dashboard":
         </div>
         """, unsafe_allow_html=True)
 
-        # KPI Strip with animation
         col1, col2, col3 = st.columns(3)
-        with col1:
-            animate_metric("Risk Exposure Index", rule_result["eligibility_score"])
-        with col2:
-            animate_metric("Failed Rules", len(rule_result["failed_rules"]))
-        with col3:
-            animate_metric("Passed Rules", len(rule_result["passed_rules"]))
+        with col1: animate_metric("Risk Exposure Index", rule_result["eligibility_score"])
+        with col2: animate_metric("Failed Rules", len(rule_result["failed_rules"]))
+        with col3: animate_metric("Passed Rules", len(rule_result["passed_rules"]))
 
-        # Risk Severity Donut Gauge
         fig_gauge = go.Figure(go.Pie(
-            values=[rule_result["eligibility_score"],
-                    100 - rule_result["eligibility_score"]],
-            hole=0.7
-        ))
-
-        fig_gauge.update_layout(
-            title="Risk Severity Gauge",
-            showlegend=False,
-            paper_bgcolor="#0F1419",
-            font=dict(color="white")
-        )
-
+            values=[rule_result["eligibility_score"], 100-rule_result["eligibility_score"]],
+            hole=0.7))
+        fig_gauge.update_layout(showlegend=False, paper_bgcolor="#0F1419",
+                                font=dict(color="white"), title="Risk Severity Gauge")
         st.plotly_chart(fig_gauge, use_container_width=True)
 
-        # Pie Chart
-        fig_pie = px.pie(
-            names=["Passed", "Failed"],
-            values=[len(rule_result["passed_rules"]),
-                    len(rule_result["failed_rules"])],
-            hole=0.5
-        )
-        fig_pie.update_layout(paper_bgcolor="#0F1419",
-                              font_color="white")
+        fig_pie = px.pie(names=["Passed","Failed"],
+                         values=[len(rule_result["passed_rules"]),
+                                 len(rule_result["failed_rules"])],
+                         hole=0.5)
+        fig_pie.update_layout(paper_bgcolor="#0F1419", font_color="white")
         st.plotly_chart(fig_pie, use_container_width=True)
 
-        # Radar Chart
         categories = list(confidence_vector.keys())
         values = list(confidence_vector.values())
-
         fig_radar = go.Figure()
-        fig_radar.add_trace(go.Scatterpolar(
-            r=values,
-            theta=categories,
-            fill='toself'
-        ))
-        fig_radar.update_layout(
-            polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
-            paper_bgcolor="#0F1419",
-            font=dict(color="white"),
-            showlegend=False
-        )
+        fig_radar.add_trace(go.Scatterpolar(r=values, theta=categories, fill='toself'))
+        fig_radar.update_layout(polar=dict(radialaxis=dict(range=[0,1], visible=True)),
+                                showlegend=False, paper_bgcolor="#0F1419",
+                                font=dict(color="white"))
         st.plotly_chart(fig_radar, use_container_width=True)
-
-# -------------------------------------------------
-# ASSESSMENTS
-# -------------------------------------------------
-elif view == "Assessments":
-
-    st.subheader("Recent Risk Assessments")
-
-    if "history" not in st.session_state:
-        st.markdown("""
-        <div class="empty-state">
-            No assessments yet.
-        </div>
-        """, unsafe_allow_html=True)
-
-# -------------------------------------------------
-# DEVELOPER API
-# -------------------------------------------------
-elif view == "Developer API":
-
-    st.subheader("API-First Architecture")
-
-    st.code("""
-curl -X POST https://api.nexusgovernance.ai/evaluate \\
--H "Content-Type: application/json" \\
--d '{"document_text": "Contract text here"}'
-""")
 
 # -------------------------------------------------
 # PRICING
 # -------------------------------------------------
 elif view == "Pricing":
 
-    st.subheader("Platform Plans")
+    if "selected_plan" not in st.session_state:
+        st.session_state.selected_plan = "Pro"
+
+    def select_plan(plan):
+        st.session_state.selected_plan = plan
 
     col1, col2, col3 = st.columns(3)
 
-    with col1:
-        st.markdown('<div class="card"><h3>Free</h3>Basic contract analysis</div>', unsafe_allow_html=True)
+    for col, plan, desc in [
+        (col1,"Free","Basic contract analysis<br>Limited audit visibility"),
+        (col2,"Pro","Full XAI trace<br>AI Advisory Layer<br>PDF Risk Reports"),
+        (col3,"Enterprise","API Access<br>Batch Processing<br>Compliance Dashboard")
+    ]:
+        with col:
+            selected = "pricing-selected" if st.session_state.selected_plan==plan else ""
+            if st.button(" ", key=f"{plan}_card", use_container_width=True):
+                select_plan(plan)
+            st.markdown(f"""
+            <div class="pricing-card {selected}">
+                <h3>{plan}</h3>
+                {desc}<br><br>
+                <strong>{'Most Popular' if plan=='Pro' else 'Select Plan →'}</strong>
+            </div>
+            """, unsafe_allow_html=True)
 
-    with col2:
-        st.markdown('<div class="card" style="border:2px solid var(--primary);"><h3>Pro</h3>Full XAI trace</div>', unsafe_allow_html=True)
+    st.markdown(f"""
+    <div style="margin-top:2rem; padding:1rem; background:#1A202C;
+    border-radius:8px; border-left:4px solid var(--primary);">
+        <strong>Selected Plan:</strong> {st.session_state.selected_plan}
+    </div>
+    """, unsafe_allow_html=True)
 
-    with col3:
-        st.markdown('<div class="card"><h3>Enterprise</h3>API Access</div>', unsafe_allow_html=True)
+    st.markdown("### Plan Comparison")
+
+    st.table({
+        "Feature": ["Risk Engine","XAI Trace","Governance Override","PDF Reports","API Access"],
+        "Free":["✔","✖","✖","✖","✖"],
+        "Pro":["✔","✔","✔","✔","✖"],
+        "Enterprise":["✔","✔","✔","✔","✔"]
+    })
+
+    st.markdown("""
+    <div style="margin-top:2rem; font-size:0.9rem; color:var(--text-secondary);">
+    Demo Mode: Stripe integration placeholder.
+    </div>
+    """, unsafe_allow_html=True)
+
+# -------------------------------------------------
+# ASSESSMENTS
+# -------------------------------------------------
+elif view == "Assessments":
+    st.markdown('<div class="empty-state">No assessments yet.</div>', unsafe_allow_html=True)
+
+# -------------------------------------------------
+# DEVELOPER API
+# -------------------------------------------------
+elif view == "Developer API":
+    st.code("""
+curl -X POST https://api.nexusgovernance.ai/evaluate \\
+-H "Content-Type: application/json" \\
+-d '{"document_text": "Contract text here"}'
+""")
