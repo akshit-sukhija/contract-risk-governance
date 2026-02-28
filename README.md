@@ -54,10 +54,8 @@ Nexus Governance OS is purpose-built to leverage **AMD hardware** for privacy an
 ---
 
 ## 📂 System Architecture
-
-The project follows a modular five-layer architecture designed for security and scalability.
-
-*Refer to the high-resolution architecture diagram (`NPU-Accelerated Deterministic AI Governance Architecture.png`) in the repository for a detailed component breakdown.*
+![Nexus Governance OS Architecture](NPU-Accelerated Deterministic AI Governance Architecture.png)
+*Figure 1: Five-Layer Deterministic Decision Intelligence Architecture optimized for AMD Ryzen™ AI.*
 
 > **📖 Technical Documentation**: Full system architecture and NPU optimization guides are included within this repository for developer review.
 
