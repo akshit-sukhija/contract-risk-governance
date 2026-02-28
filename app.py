@@ -285,39 +285,68 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------
-# HEADER
+# HEADER – CLEAN EXECUTIVE FORMAT
 # ------------------------------------------------
 
-st.title("Nexus Architect")
-st.caption("Deterministic AI Governance Engine")
+st.title("Nexus Governance OS")
+st.caption("Deterministic Clause Benchmarking & Compliance Automation")
 
 st.markdown("""
 <div style="
-padding:10px 16px;
+margin-top:8px;
+margin-bottom:30px;
+padding:18px 20px;
 background:#0f172a;
-border-left:4px solid #2563EB;
-border-radius:10px;
-margin-bottom:25px;
-font-size:14px;">
-Rule Engine • Governance Layer • SHA-256 Integrity • UUID Traceability • AMD Ryzen AI Optimized
+border-radius:14px;
+border:1px solid #1e293b;
+">
+
+<div style="font-size:13px; color:#94a3b8; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:10px;">
+Platform Capabilities
+</div>
+
+<div style="display:flex; flex-wrap:wrap; gap:12px;">
+
+<span style="background:#111827; padding:6px 12px; border-radius:20px; border:1px solid #1f2937; font-size:13px;">
+Rule Engine
+</span>
+
+<span style="background:#111827; padding:6px 12px; border-radius:20px; border:1px solid #1f2937; font-size:13px;">
+Governance Layer
+</span>
+
+<span style="background:#111827; padding:6px 12px; border-radius:20px; border:1px solid #1f2937; font-size:13px;">
+SHA-256 Integrity
+</span>
+
+<span style="background:#111827; padding:6px 12px; border-radius:20px; border:1px solid #1f2937; font-size:13px;">
+UUID Traceability
+</span>
+
+<span style="background:#1e3a8a; padding:6px 12px; border-radius:20px; border:1px solid #2563eb; font-size:13px; color:white;">
+AMD Ryzen AI Optimized
+</span>
+
+</div>
 </div>
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------
-# DASHBOARD (HERO COMMAND CENTER)
+# DASHBOARD – NEXUS COMMAND CENTER
 # ------------------------------------------------
 
 if view == "Dashboard":
 
     st.markdown("## Nexus Command Center")
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
     uploaded_pdf = st.file_uploader("Upload Contract PDF", type=["pdf"])
-    document_text = st.text_area("Or Paste Contract Text", height=200)
+    document_text = st.text_area("Or Paste Contract Text", height=220)
     analyze_clicked = st.button("Analyze Contract", use_container_width=True)
 
     if analyze_clicked:
 
-        with st.spinner("AMD RYZEN AI NODE – Processing Document..."):
+        with st.spinner("Processing document with AMD Ryzen AI acceleration..."):
 
             if uploaded_pdf:
                 document_text = extract_pdf_text(uploaded_pdf)
@@ -367,49 +396,91 @@ if view == "Dashboard":
 
         accent = risk_colors.get(risk, "#2563eb")
 
-        # Executive Risk Banner
+        # ------------------------------------------------
+        # Executive Risk Display (Minimal Authority Style)
+        # ------------------------------------------------
+
         st.markdown(f"""
-        <div style="background:#0f172a;
-                    padding:26px;
-                    border-radius:16px;
-                    border-left:6px solid {accent};
-                    margin-bottom:30px;">
-            <div style="font-size:40px; font-weight:600; color:{accent};">
-                {risk.replace("_"," ")}
+        <div style="
+            background:#0f172a;
+            padding:28px;
+            border-radius:18px;
+            border:1px solid #1e293b;
+            margin-top:20px;
+            margin-bottom:28px;
+        ">
+            <div style="font-size:12px; letter-spacing:0.1em; color:#94a3b8; text-transform:uppercase;">
+                Risk Classification
             </div>
-            <div style="margin-top:8px; color:#cbd5e1;">
+
+            <div style="
+                font-size:46px;
+                font-weight:600;
+                margin-top:6px;
+                color:{accent};
+            ">
+                {risk.replace("_", " ")}
+            </div>
+
+            <div style="margin-top:12px; color:#cbd5e1; font-size:15px;">
                 Governance Action: <strong>{governance_action}</strong><br>
-                Risk Score: {rule_result["eligibility_score"]}
+                Risk Score: {rule_result["eligibility_score"]}/100
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # KPI GRID
-        col1, col2, col3, col4 = st.columns(4)
+        # ------------------------------------------------
+        # KPI GRID (Cleaner Typography Hierarchy)
+        # ------------------------------------------------
+
+        col1, col2, col3 = st.columns(3)
 
         confidence_score = round(
             sum(confidence_vector.values()) / len(confidence_vector) * 100, 1
         )
 
-        kpis = [
-            ("Risk Score", rule_result["eligibility_score"]),
-            ("Total Clauses", len(rule_engine.rules)),
-            ("Critical Flags", len(rule_result["failed_rules"])),
-            ("AI Confidence", f"{confidence_score}%")
+        kpi_data = [
+            ("Failed Rules", len(rule_result["failed_rules"])),
+            ("Passed Rules", len(rule_result["passed_rules"])),
+            ("Confidence Index", f"{confidence_score}%")
         ]
 
-        for col, (label, value) in zip([col1,col2,col3,col4], kpis):
+        for col, (label, value) in zip([col1, col2, col3], kpi_data):
             with col:
                 st.markdown(f"""
-                <div class="kpi-card">
-                    <div class="kpi-label">{label}</div>
-                    <div class="kpi-value">{value}</div>
+                <div style="
+                    background:#0b1220;
+                    padding:24px;
+                    border-radius:16px;
+                    border:1px solid #1e293b;
+                    text-align:center;
+                ">
+                    <div style="
+                        font-size:12px;
+                        letter-spacing:0.08em;
+                        color:#94a3b8;
+                        text-transform:uppercase;
+                    ">
+                        {label}
+                    </div>
+
+                    <div style="
+                        font-size:38px;
+                        font-weight:600;
+                        margin-top:10px;
+                        color:white;
+                    ">
+                        {value}
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<div style='height:30px'></div>", unsafe_allow_html=True)
 
-        # Risk Gauge
+        # ------------------------------------------------
+        # Risk Gauge (Semantic Color)
+        # ------------------------------------------------
+
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
             value=rule_result["eligibility_score"],
@@ -418,10 +489,16 @@ if view == "Dashboard":
                 "bar": {"color": accent},
             },
         ))
-        fig.update_layout(height=260)
+
+        fig.update_layout(height=260, margin=dict(t=30, b=10))
         st.plotly_chart(fig, use_container_width=True)
 
+        st.markdown("<div style='height:25px'></div>", unsafe_allow_html=True)
+
+        # ------------------------------------------------
         # PDF Download
+        # ------------------------------------------------
+
         try:
             pdf_buffer = generate_pdf_report(
                 rule_result,
